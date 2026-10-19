@@ -5,3 +5,4 @@ experiments/*/checkpoints/
 *.wav
 *.flac
 models/
+.env
