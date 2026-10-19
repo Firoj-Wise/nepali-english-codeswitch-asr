@@ -1,0 +1,18 @@
+seed: 1234
+audio_base_directory: data
+# Synthetic manifests (after filtering) that form the training pool.
+synthetic_manifests:
+  - data/manifests/synth_inhouse_omnivoice.filtered.jsonl
+  - data/manifests/synth_gemini.filtered.jsonl
+# Split by sentence: no synthetic dev sentence appears in train.
+synthetic_split_ratios:
+  train: 0.95
+  dev: 0.05
+# Real human recordings. Never used for training. Split by speaker into a real dev set
+# (model selection) and a real test set (final numbers only).
+real_recordings_manifest: data/manifests/real_recordings.jsonl
+real_split_ratios:
+  dev: 0.25
+  test: 0.75
+splits_dir: data/splits
+leakage_ngram_size: 5

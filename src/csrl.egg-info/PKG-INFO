@@ -1,0 +1,23 @@
+Metadata-Version: 2.4
+Name: csrl
+Version: 0.1.0
+Summary: Script-aware RL for Nepali-English code-switched ASR
+Requires-Python: >=3.11
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: torch>=2.1
+Requires-Dist: numpy
+Requires-Dist: scipy
+Requires-Dist: soundfile
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: ruff>=0.5; extra == "dev"
+Requires-Dist: mypy>=1.10; extra == "dev"
+Provides-Extra: train
+Requires-Dist: nemo_toolkit[asr]; extra == "train"
+Requires-Dist: huggingface_hub; extra == "train"
+Requires-Dist: sentencepiece; extra == "train"
+Requires-Dist: transformers; extra == "train"
+Provides-Extra: data
+Requires-Dist: google-genai>=2.25.0; extra == "data"
+Requires-Dist: omnivoice; extra == "data"
+Requires-Dist: transformers; extra == "data"

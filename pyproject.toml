@@ -1,0 +1,24 @@
+[project]
+name = "csrl"
+version = "0.1.0"
+description = "Script-aware RL for Nepali-English code-switched ASR"
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6.0", "torch>=2.1", "numpy", "scipy", "soundfile"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10"]
+train = ["nemo_toolkit[asr]", "huggingface_hub", "sentencepiece", "transformers"]
+data = ["google-genai>=2.25.0", "omnivoice", "transformers"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100

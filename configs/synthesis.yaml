@@ -1,0 +1,61 @@
+# Synthetic data generation. Secrets come from environment variables, never from this file.
+# Private model paths and plugins live outside the repository; only their locations are here.
+seed: 1234
+audio_base_directory: data
+raw_sentences: data/text/sentences.raw.jsonl
+validated_sentences: data/text/sentences.validated.jsonl
+sentence_limits:
+  min_words: 4
+  max_words: 30
+voices_per_sentence: 2
+max_failure_fraction: 0.05
+
+systems:
+  gemini:
+    model: gemini-3.8-flash-tts
+    api_key_env: GEMINI_API_KEY
+    max_retries: 5
+    retry_status_codes: [429, 500, 503]
+    backoff_seconds: 2.0
+    style_prompts:
+      expressive: "natural conversational delivery with varied, lively intonation"
+    voices:
+      - {voice_id: Kore, style: neutral}
+      - {voice_id: Puck, style: neutral}
+      - {voice_id: Charon, style: neutral}
+      - {voice_id: Leda, style: neutral}
+  base_omnivoice:
+    model_path: k2-fsa/OmniVoice
+    device: cuda:0
+    output_sample_rate: 24000
+    style_plugin: null
+    voices: []  # {voice_id, style: neutral, reference_audio, reference_text}; consented clips only
+  inhouse_omnivoice:
+    model_path: /home/oem/wiseyak_backup/firojpaudel/omnivoice-tts-ft/checkpoints/nepali_multidomain_merged
+    device: cuda:0
+    output_sample_rate: 24000
+    language: npi
+    style_plugin: null  # "private_module:transform", importable from PYTHONPATH, outside repo
+    voices:
+      - {voice_id: prakash, style: neutral, reference_audio: /home/oem/wiseyak_backup/firojpaudel/omnivoice-tts-ft/prakash_ref.wav, reference_text: null}
+      - {voice_id: deepak, style: neutral, reference_audio: /home/oem/wiseyak_backup/firojpaudel/omnivoice-tts-ft/Deepak_nep.wav, reference_text: null}
+
+filter:
+  model_id: REPLACE_WITH_INDEPENDENT_NEPALI_ASR
+  device: cuda:0
+  batch_size: 16
+  scope: devanagari_only
+  max_round_trip_cer: 0.15
+  min_duration_seconds: 1.0
+  max_duration_seconds: 30.0
+  min_characters_per_second: 4.0
+  max_characters_per_second: 25.0
+
+telephony:
+  snr_db_low: 10.0
+  snr_db_high: 30.0
+  quantization_levels: 256
+  output_subdirectory: synthetic_telephony
+
+leakage:
+  ngram_size: 5
