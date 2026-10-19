@@ -1,0 +1,1553 @@
+# model inspection
+
+## configuration_indic_canary.py
+3: """IndicCanary model configuration (HF-style port of NeMo EncDecMultiTaskModel)."""
+9:     model_type = "indic_canary"
+14:         d_model=1024,
+30:         # the frozen canary2 prompt starts with <|startofcontext|> (7); generate()
+31:         # prepends decoder_start_token_id when the prompt doesn't start with it
+38:         self.d_model = d_model
+
+## feature_extraction_indic_canary.py
+12:   - stft(n_fft=512, hop=160, win=400, center=True, pad_mode='reflect').
+19:     regardless of model dtype (NeMo hard-forces fp32 here too).
+
+## indic_transcribe.py
+63:     from .modeling_indic_canary import IndicCanaryForConditionalGeneration
+68:     from modeling_indic_canary import IndicCanaryForConditionalGeneration
+71: #: mode name -> (itn, romanized), the two prompt slots that select the output.
+72: MODES: dict[str, tuple[bool, bool]] = {
+74:     "mixed": (True, False),        # mixed script: Latin loanwords, digits
+77: MODES["romanized"] = MODES["romanised"]  # both spellings
+78: MODES["itn"] = MODES["mixed"]
+93:     """One model, one call. See the module docstring for the three-line form."""
+95:     def __init__(self, model, fe, tokenizer, device: str, max_seconds: float = 45.0):
+96:         self.model, self.fe, self.tokenizer = model, fe, tokenizer
+105:         model = IndicCanaryForConditionalGeneration.from_pretrained(path, dtype=dtype)
+106:         model = model.to(device).eval()
+107:         return cls(model, IndicCanaryFeatureExtractor.from_pretrained(path, device=device),
+113:         """Path, tensor or array -> mono float32 at the model's rate.
+158:     def __call__(self, audio, lang: str | None = None, mode: str = "native", **kw):
+159:         return self.transcribe(audio, lang, mode, **kw)
+161:     def transcribe(self, audio, lang: str | None = None, mode: str = "native",
+164:         """Transcribe one clip. ``mode`` is native / mixed / romanised.
+169:         and the model is visible rather than silent.
+171:         if mode not in MODES:
+172:             raise ValueError(f"mode must be one of {sorted(set(MODES))}, got {mode!r}")
+175:         itn, romanized = MODES[mode]
+202:             with torch.inference_mode():
+203:                 enc = self.model.model.encoder(feats, attention_mask=mask)
+205:                     self.model, enc.last_hidden_state, enc.lengths,
+213:                         f"identified {lang!r}, one of this model's weakest classes "
+220:         prompt = self.tokenizer.encode_prompt(lang, itn=itn, romanized=romanized)
+221:         ids = torch.tensor([prompt], device=self.device)
+222:         with torch.inference_mode():
+227:                 out = (self.model.generate(input_features=feats, **kw) if enc is None
+228:                        else self.model.generate(encoder_outputs=enc, **kw))
+231:         # strip with the SAME prompt used to generate -- a mismatch raises here
+233:             self.tokenizer.strip_prompt_and_trim(out[0].tolist(), prompt)
+245:         passing ``TRAINED_LANGS`` is a NO-OP -- the model already never emits the
+254:         with torch.inference_mode():
+255:             enc = self.model.model.encoder(feats, attention_mask=mask)
+257:                 self.model, enc.last_hidden_state, enc.lengths,
+261:     def all_modes(self, audio, lang: str | None = None, **kw) -> dict[str, str]:
+262:         """Every output mode for one clip, as ``{mode: text}``."""
+264:         if lang is None:          # ...and identify once, not once per mode
+267:                 for m in ("native", "mixed", "romanised")}
+
+## inference.py
+9:     model_dir = snapshot_download("bodhan-ai/Indic-Transcribe-Flex")
+10:     sys.path.insert(0, model_dir)          # the model code ships inside the download
+13:     asr = IndicTranscribe.from_pretrained(model_dir)
+20: Everything below wraps those in a CLI and routes audio longer than the model's
+37: from indic_transcribe import IndicTranscribe, LANGUAGES, MODES  # noqa: E402
+43: def load_model(source: str | None, device: str | None):
+44:     """Local checkout by default; pass --model to pull from the Hub instead."""
+68:     p.add_argument("--mode", default="native", choices=sorted(set(MODES)),
+69:                    help="output mode: native, mixed or romanized (default: native)")
+70:     p.add_argument("--model", default=None,
+71:                    help="model dir or Hub id (default: this directory)")
+80:     asr = load_model(args.model, args.device)
+81:     # The model trains on clips of up to 30 s; anything longer goes through the chunked
+108:                 text = transcribe_long(asr, path, lang=lang, mode=args.mode)
+110:                 text = asr.transcribe(path, lang=lang, mode=args.mode)
+
+## lid.py
+5: docs/asr/caveats.md says the model "is language-conditioned; there is no LID" —
+9: The trick: the frozen canary2 prompt is
+15: position asks the model which language token belongs in the ``source_lang`` slot. It is
+23: confidence (0.68, and one exact 0.4993 tie) — the pair the model genuinely cannot
+44: single clip. The model has already learnt not to emit the ~162 language tokens it
+73: model.
+83: # The language-independent head of the frozen prompt. Deliberately derived from the
+84: # tokenizer at call time rather than hardcoded, so it cannot drift from the prompt the
+89: #: corpora in its own model_config.yaml).
+114: # _LANG_TOKEN_RE: <|itn|> and <|pnc|>. Without this they enter the candidate set
+115: # as if they were languages "itn"/"pnc" and can be returned as a prediction.
+116: _NOT_LANGUAGES = frozenset({"itn", "pnc"})
+139:     """``[7, 4, 18]`` — the prompt head up to (not including) the language slot."""
+140:     return list(tokenizer.encode_prompt("hi")[:LID_PREFIX_LEN])
+147:     caller needs to restrict itself to ``tokenization_indic_canary.PROMPT_LANGS`` (which
+148:     is only a prompt-precompute cache, not a capability limit).
+168: @torch.inference_mode()
+170:     model,
+184:     of the real prompt, so their KV is reusable if the caller wants to.
+186:     Softmax is taken in fp32 even under a bf16 model: callers threshold this probability
+194:     cross_mask = model._cross_mask_from_lengths(encoder_lengths, encoder_states.size(1))
+195:     hidden = model.model.decoder(
+198:     logits = model.lm_head(hidden[:, -1])
+
+## long_form.py
+11: 30 s +0.00. DO NOT LOWER the 30 s cap; raising it past 30 s breaks the model.
+13: Only needs what the model already needs: torch, torchaudio, soundfile.
+88: def transcribe_long(asr, audio, lang: str | None, mode: str = "native", **kw) -> str:
+91:     ``audio`` is a file path (any sample rate; downmixed and resampled) or an array /
+92:     tensor that is ALREADY 16 kHz. A 2-D array is downmixed: (samples, channels) as
+126:         out.append(_decode_guarded(asr, piece, lang, mode, kw))
+164: def _decode_guarded(asr, piece, lang, mode, kw, depth=0):
+171:     text = asr.transcribe(piece, lang=lang, mode=mode, **kw)
+188:         t.strip() for t in (_decode_guarded(asr, piece[x:y], lang, mode, kw, depth + 1)
+
+## modeling_indic_canary.py
+8: """HuggingFace-style IndicCanary model (Canary-2 AED architecture).
+32: from transformers import GenerationMixin, PreTrainedModel
+34: from transformers.modeling_outputs import ModelOutput, Seq2SeqLMOutput
+36: # Dual-mode import. transformers' trust_remote_code loads these files AS A
+73:         self.out = nn.Linear(ch * freq_out, config.d_model)
+109:     def __init__(self, d_model: int):
+111:         self.d_model = d_model
+112:         self.register_buffer("pe", torch.zeros(1, 1, d_model), persistent=False)
+120:         pe = torch.zeros(positions.size(0), self.d_model, device=device)
+122:             torch.arange(0, self.d_model, 2, dtype=torch.float32, device=device)
+123:             * -(math.log(10000.0) / self.d_model)
+139:         d = config.d_model
+187:         self.linear1 = nn.Linear(config.d_model, config.encoder_ffn_dim)
+189:         self.linear2 = nn.Linear(config.encoder_ffn_dim, config.d_model)
+198:         d = config.d_model
+222:         d = config.d_model
+243: class IndicCanaryEncoderOutput(ModelOutput):
+253:         self.pos_enc = IndicCanaryRelPositionalEncoding(config.d_model)
+294:     """Table is ALREADY divided by sqrt(d_model) (loaded from the checkpoint)."""
+298:         self.register_buffer("pos_enc", torch.zeros(config.max_target_positions, config.d_model))
+307:         self.token_embedding = nn.Embedding(config.vocab_size, config.d_model, padding_idx=0)
+309:         self.layer_norm = nn.LayerNorm(config.d_model, eps=1e-5)
+334:         d = config.d_model
+387:         d = config.d_model
+435:         self.dense_in = nn.Linear(config.d_model, config.decoder_ffn_dim)
+436:         self.dense_out = nn.Linear(config.decoder_ffn_dim, config.d_model)
+450:         self.final_layer_norm = nn.LayerNorm(config.d_model, eps=1e-5)
+483: # Top-level model
+487: class IndicCanaryMainModel(nn.Module):
+494: class IndicCanaryForConditionalGeneration(PreTrainedModel, GenerationMixin):
+496:     base_model_prefix = "model"
+499:         "lm_head.weight": "model.decoder.embedding.token_embedding.weight"
+504:         self.model = IndicCanaryMainModel(config)
+505:         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=True)
+518:         The symptom is a model that runs and emits confident garbage: a random
+524:         never to initialize one — so skipping init costs nothing. A model built
+531:         return self.model.encoder
+534:         return self.model.decoder
+537:         return self.model.decoder.embedding.token_embedding
+540:         self.model.decoder.embedding.token_embedding = value
+568:             encoder_outputs = self.model.encoder(input_features, attention_mask=attention_mask)
+590:         hidden = self.model.decoder(
+
+## nemo/canary_multilingual_tokenizer.py
+17: The checkpoint's aggregate tokenizer has two sub-tokenizers, ``spl_tokens`` (the prompt
+24: It subclasses NeMo's own CanaryTokenizer on purpose: NeMo's prompt formatter branches on
+36:     from nemo.collections.asr.models import EncDecMultiTaskModel
+37:     model = EncDecMultiTaskModel.restore_from("indic_transcribe_core.nemo")
+38:     print(model.transcribe(["audio.wav"], source_lang="hi", target_lang="hi", pnc="yes")[0].text)
+87:                     ids.extend(self._tokenize_special_prompt(specials[i]))
+94:             return self._tokenize_special_prompt(text)
+
+## nemo/inference_nemo.py
+9: Audio longer than 30 s -- the length this model trains on -- is cut at natural pauses and
+10: decoded piece by piece (``long_form_nemo.py``), the same way the Hugging Face model does it.
+20: from load_nemo import load_nemo_model          # noqa: E402
+41:     p.add_argument("--model-dir", default=None, help="where the .nemo lives (default: this folder)")
+58:     model = load_nemo_model(args.model_dir, map_location=args.device)
+62:         outs = model.transcribe(short, batch_size=args.batch_size,
+63:                                 source_lang=args.lang, target_lang=args.lang, pnc="yes")
+69:             texts[path] = transcribe_long_nemo(model, path, lang=args.lang,
+
+## nemo/load_nemo.py
+7:     model_dir = snapshot_download("bodhan-ai/indic-transcribe-core")
+8:     sys.path.insert(0, f"{model_dir}/nemo")
+10:     from load_nemo import load_nemo_model
+11:     model = load_nemo_model(model_dir)
+12:     print(model.transcribe(["audio.wav"], source_lang="hi", target_lang="hi", pnc="yes")[0].text)
+15: stock NeMo install, so ``load_nemo_model`` registers the copy in this folder before restoring.
+30: __all__ = ["load_nemo_model", "register_tokenizer", "find_checkpoint"]
+44: def find_checkpoint(model_dir: str | None = None) -> str:
+45:     """The .nemo file in this folder (or in ``model_dir``/nemo)."""
+46:     for d in ([os.path.join(model_dir, "nemo"), model_dir] if model_dir else []) + [HERE]:
+50:     raise FileNotFoundError(f"no .nemo checkpoint found in {model_dir or HERE}")
+53: def load_nemo_model(model_dir: str | None = None, map_location: str | None = None):
+54:     """Register the tokenizer, restore the checkpoint, return the NeMo model."""
+56:     from nemo.collections.asr.models import EncDecMultiTaskModel
+58:     checkpoint = find_checkpoint(model_dir)
+63:     return EncDecMultiTaskModel.restore_from(checkpoint, map_location=map_location).eval()
+
+## nemo/long_form_nemo.py
+8: The splitter, the 30 s cap and the loop guard are the ones the Hugging Face model uses --
+16:     model_dir = snapshot_download("bodhan-ai/indic-transcribe-core")
+17:     sys.path.insert(0, f"{model_dir}/nemo")
+19:     from load_nemo import load_nemo_model
+22:     model = load_nemo_model(model_dir)
+23:     print(transcribe_long_nemo(model, "long_audio.wav", lang="hi"))
+34: from long_form import (  # noqa: E402  (the model's own splitter and guard)
+68: def _decode(model, pieces, lang, batch_size, **kw):
+72:     out = model.transcribe([p.numpy() for p in pieces], batch_size=batch_size,
+73:                            source_lang=lang, target_lang=lang, pnc="yes", **kw)
+77: def transcribe_long_nemo(model, audio, lang: str, batch_size: int = 8, **kw) -> str:
+78:     """Transcribe audio of any length with a NeMo model. Returns one string.
+86:     texts = _decode(model, pieces, lang, batch_size, **kw)
+96:         texts[i] = _retry(model, piece, lang, batch_size, kw, depth=0)
+100: def _retry(model, piece, lang, batch_size, kw, depth: int) -> str:
+102:         return " ".join(_collapse_repeats(_decode(model, [piece], lang, 1, **kw)[0].split()))
+110:     for h, text in zip(halves, _decode(model, halves, lang, batch_size, **kw)):
+113:         out.append(_retry(model, h, lang, batch_size, kw, depth + 1) if looped else text)
+118:     from load_nemo import load_nemo_model
+122:     m = load_nemo_model()
+
+## nemo/test_nemo.py
+7: With no arguments it only loads the model.
+14: from load_nemo import find_checkpoint, load_nemo_model  # noqa: E402
+21:     model = load_nemo_model()
+25:     ok = isinstance(model.tokenizer, CanaryTokenizer)
+27:     print(f"loaded {os.path.basename(find_checkpoint())}: tokenizer {type(model.tokenizer).__name__}, "
+28:           f"sub-tokenizers {model.tokenizer.langs}, prompt-compatible: {ok}")
+30:         print("FAIL: the prompt formatter will not accept this tokenizer")
+37:     out = model.transcribe([audio], batch_size=1, source_lang=lang, target_lang=lang, pnc="yes")[0]
+
+## tokenization_indic_canary.py
+7: """Aggregate SentencePiece tokenizer for IndicCanary with the canary2 prompt.
+14:   - the inference prompt is a FIXED 10-token layout; only the two output-mode
+15:     slots (itn, romanized) vary, selected per request (default = native):
+17:       <|pnc|><|noitn or itn|><|noromanized or romanized|><|notimestamp|><|nodiarize|>
+18:     native ids [7, 4, 18, L, L, 5, 9, 11, 13, 15]; itn swaps slot 6 to 8;
+19:     romanized swaps slot 7 to 10. (The itn_romanized_posttrain checkpoint line
+20:     is trained for all three modes.) Note production effectively runs
+21:     <|pnc|> because `punc=False` is silently dropped by NeMo's transcribe().
+24:     deviation — cannot trigger with <|notimestamp|> prompts).
+37: SPL_FILE = "tokenizer_spl_tokens.model"
+38: MULTI_FILE = "tokenizer_multilingual.model"
+43: # Languages precomputed into the prompt table at init. Covers the fork's full
+45: # itn_romanized_posttrain checkpoint line trained on: 22 scheduled Indic +
+49: # encode_prompt, so this tuple is a warm cache, not a whitelist.
+50: PROMPT_LANGS = (
+56: # Prompt slot indices for the two output-mode switches (see encode_prompt).
+57: _SLOT_ITN = 6
+62:     """Plain (non-PreTrainedTokenizer) tokenizer: decode + frozen prompt building."""
+64:     def __init__(self, spl_model_path: str, multi_model_path: str):
+65:         self.spl = spm.SentencePieceProcessor(model_file=spl_model_path)
+66:         self.multi = spm.SentencePieceProcessor(model_file=multi_model_path)
+87:                 "<|pnc|>",
+88:                 "<|noitn|>",
+94:         assert all(i != self.unk_id for i in slot_ids), "prompt slot token missing from spl vocab"
+95:         boc, bos, emo, pnc, noitn, norom, nots, nodia = slot_ids
+96:         # output-mode switch tokens (slots _SLOT_ITN / _SLOT_ROMANIZED)
+97:         self.noitn_id = noitn
+99:         self.itn_id = self.spl.piece_to_id("<|itn|>")
+101:         assert self.itn_id != self.unk_id and self.romanized_id != self.unk_id, (
+102:             "mode tokens <|itn|>/<|romanized|> missing from spl vocab"
+104:         self._prompt_table = {}
+105:         for lang in PROMPT_LANGS:
+109:                 # bgc/hne); unlisted langs still resolve in encode_prompt
+111:             self._prompt_table[lang] = [boc, bos, emo, lid, lid, pnc, noitn, norom, nots, nodia]
+112:         assert self._prompt_table, "no PROMPT_LANGS language found in spl vocab"
+114:     # ---- prompt -------------------------------------------------------------
+116:     def encode_prompt(self, lang: str, *, itn: bool = False, romanized: bool = False) -> list[int]:
+117:         """The 10-token canary2 prompt for a language and output mode.
+119:         Modes (mutually independent slots 6/7; both default False = native):
+120:           native     itn=False, romanized=False -> <|noitn|><|noromanized|>
+121:           mixed/ITN  itn=True                   -> <|itn|>  <|noromanized|>
+122:           romanized  romanized=True             -> <|noitn|><|romanized|>
+123:         The prompt is ALWAYS exactly 10 tokens, so batching and prompt
+124:         stripping are mode-independent. Generation and stripping must use the
+125:         same (lang, itn, romanized) triple — strip_prompt_and_trim raises on
+129:             ids = list(self._prompt_table[lang])
+134:             base = next(iter(self._prompt_table.values()))
+137:             # cache the NATIVE prompt only; mode slots are applied per call
+138:             ids[_SLOT_ITN] = self.noitn_id
+140:             self._prompt_table[lang] = list(ids)
+141:         if itn:
+142:             ids[_SLOT_ITN] = self.itn_id
+148:     def prompt_len(self) -> int:
+178:     def strip_prompt_and_trim(self, ids: Sequence[int], prompt: Sequence[int]) -> list[int]:
+179:         """Replicates NeMo format_hypotheses: drop the prompt prefix, then trim
+182:         p = [int(i) for i in prompt]
+185:                 f"prompt prefix not found at start of prediction: {ids[: len(p)]} != {p}"
+199:                 f.write(sp.serialized_model_proto())
+213:                     "prompt_langs": sorted(self._prompt_table),
+214:                     "prompt_ids_by_lang": dict(sorted(self._prompt_table.items())),
+
+## special tokens (id, piece)
+0: <unk>
+1: <|nospeech|>
+2: <pad>
+3: <|endoftext|>
+4: <|startoftranscript|>
+5: <|pnc|>
+6: <|nopnc|>
+7: <|startofcontext|>
+8: <|itn|>
+9: <|noitn|>
+10: <|romanized|>
+11: <|noromanized|>
+12: <|timestamp|>
+13: <|notimestamp|>
+14: <|diarize|>
+15: <|nodiarize|>
+16: <|spkchange|>
+17: <|audioseparator|>
+18: <|emo:undefined|>
+19: <|emo:neutral|>
+20: <|emo:happy|>
+21: <|emo:sad|>
+22: <|emo:angry|>
+23: <|unklang|>
+24: <|bhb|>
+25: <|bho|>
+26: <|bgc|>
+27: <|hne|>
+28: <|sq|>
+29: <|am|>
+30: <|ar|>
+31: <|an|>
+32: <|hy|>
+33: <|as|>
+34: <|av|>
+35: <|ae|>
+36: <|ay|>
+37: <|az|>
+38: <|bm|>
+39: <|ba|>
+40: <|eu|>
+41: <|be|>
+42: <|bn|>
+43: <|bi|>
+44: <|bs|>
+45: <|br|>
+46: <|brx|>
+47: <|bg|>
+48: <|my|>
+49: <|ca|>
+50: <|ch|>
+51: <|ce|>
+52: <|ny|>
+53: <|zh|>
+54: <|cu|>
+55: <|cv|>
+56: <|kw|>
+57: <|co|>
+58: <|cr|>
+59: <|hr|>
+60: <|cs|>
+61: <|da|>
+62: <|doi|>
+63: <|dv|>
+64: <|nl|>
+65: <|dz|>
+66: <|en|>
+67: <|eo|>
+68: <|et|>
+69: <|ee|>
+70: <|fo|>
+71: <|fj|>
+72: <|fi|>
+73: <|fr|>
+74: <|fy|>
+75: <|ff|>
+76: <|gd|>
+77: <|gl|>
+78: <|lg|>
+79: <|ka|>
+80: <|de|>
+81: <|el|>
+82: <|kl|>
+83: <|gn|>
+84: <|gu|>
+85: <|ht|>
+86: <|ha|>
+87: <|he|>
+88: <|hz|>
+89: <|hi|>
+90: <|ho|>
+91: <|hu|>
+92: <|is|>
+93: <|io|>
+94: <|ig|>
+95: <|id|>
+96: <|ia|>
+97: <|ie|>
+98: <|iu|>
+99: <|ik|>
+100: <|ga|>
+101: <|it|>
+102: <|ja|>
+103: <|jv|>
+104: <|kn|>
+105: <|kr|>
+106: <|ks|>
+107: <|kk|>
+108: <|kok|>
+109: <|km|>
+110: <|ki|>
+111: <|rw|>
+112: <|ky|>
+113: <|kv|>
+114: <|kg|>
+115: <|ko|>
+116: <|kj|>
+117: <|ku|>
+118: <|lo|>
+119: <|la|>
+120: <|lv|>
+121: <|li|>
+122: <|ln|>
+123: <|lt|>
+124: <|lu|>
+125: <|lb|>
+126: <|mai|>
+127: <|mk|>
+128: <|mg|>
+129: <|ms|>
+130: <|ml|>
+131: <|mt|>
+132: <|gv|>
+133: <|mi|>
+134: <|mr|>
+135: <|mh|>
+136: <|mn|>
+137: <|mni|>
+138: <|na|>
+139: <|nv|>
+140: <|nd|>
+141: <|nr|>
+142: <|ng|>
+143: <|ne|>
+144: <|no|>
+145: <|nb|>
+146: <|nn|>
+147: <|oc|>
+148: <|oj|>
+149: <|or|>
+150: <|om|>
+151: <|os|>
+152: <|pi|>
+153: <|ps|>
+154: <|fa|>
+155: <|pl|>
+156: <|pt|>
+157: <|pa|>
+158: <|qu|>
+159: <|ro|>
+160: <|rm|>
+161: <|rn|>
+162: <|ru|>
+163: <|se|>
+164: <|sm|>
+165: <|sg|>
+166: <|sa|>
+167: <|sat|>
+168: <|sc|>
+169: <|sr|>
+170: <|sn|>
+171: <|sd|>
+172: <|si|>
+173: <|sk|>
+174: <|sl|>
+175: <|so|>
+176: <|st|>
+177: <|es|>
+178: <|su|>
+179: <|sw|>
+180: <|ss|>
+181: <|sv|>
+182: <|tl|>
+183: <|ty|>
+184: <|tg|>
+185: <|ta|>
+186: <|tt|>
+187: <|te|>
+188: <|th|>
+189: <|bo|>
+190: <|ti|>
+191: <|to|>
+192: <|ts|>
+193: <|tn|>
+194: <|tr|>
+195: <|tk|>
+196: <|tw|>
+197: <|ug|>
+198: <|uk|>
+199: <|ur|>
+200: <|uz|>
+201: <|ve|>
+202: <|vi|>
+203: <|vo|>
+204: <|wa|>
+205: <|cy|>
+206: <|wo|>
+207: <|xh|>
+208: <|ii|>
+209: <|yi|>
+210: <|yo|>
+211: <|za|>
+212: <|zu|>
+213: <|0|>
+214: <|1|>
+215: <|2|>
+216: <|3|>
+217: <|4|>
+218: <|5|>
+219: <|6|>
+220: <|7|>
+221: <|8|>
+222: <|9|>
+223: <|10|>
+224: <|11|>
+225: <|12|>
+226: <|13|>
+227: <|14|>
+228: <|15|>
+229: <|16|>
+230: <|17|>
+231: <|18|>
+232: <|19|>
+233: <|20|>
+234: <|21|>
+235: <|22|>
+236: <|23|>
+237: <|24|>
+238: <|25|>
+239: <|26|>
+240: <|27|>
+241: <|28|>
+242: <|29|>
+243: <|30|>
+244: <|31|>
+245: <|32|>
+246: <|33|>
+247: <|34|>
+248: <|35|>
+249: <|36|>
+250: <|37|>
+251: <|38|>
+252: <|39|>
+253: <|40|>
+254: <|41|>
+255: <|42|>
+256: <|43|>
+257: <|44|>
+258: <|45|>
+259: <|46|>
+260: <|47|>
+261: <|48|>
+262: <|49|>
+263: <|50|>
+264: <|51|>
+265: <|52|>
+266: <|53|>
+267: <|54|>
+268: <|55|>
+269: <|56|>
+270: <|57|>
+271: <|58|>
+272: <|59|>
+273: <|60|>
+274: <|61|>
+275: <|62|>
+276: <|63|>
+277: <|64|>
+278: <|65|>
+279: <|66|>
+280: <|67|>
+281: <|68|>
+282: <|69|>
+283: <|70|>
+284: <|71|>
+285: <|72|>
+286: <|73|>
+287: <|74|>
+288: <|75|>
+289: <|76|>
+290: <|77|>
+291: <|78|>
+292: <|79|>
+293: <|80|>
+294: <|81|>
+295: <|82|>
+296: <|83|>
+297: <|84|>
+298: <|85|>
+299: <|86|>
+300: <|87|>
+301: <|88|>
+302: <|89|>
+303: <|90|>
+304: <|91|>
+305: <|92|>
+306: <|93|>
+307: <|94|>
+308: <|95|>
+309: <|96|>
+310: <|97|>
+311: <|98|>
+312: <|99|>
+313: <|100|>
+314: <|101|>
+315: <|102|>
+316: <|103|>
+317: <|104|>
+318: <|105|>
+319: <|106|>
+320: <|107|>
+321: <|108|>
+322: <|109|>
+323: <|110|>
+324: <|111|>
+325: <|112|>
+326: <|113|>
+327: <|114|>
+328: <|115|>
+329: <|116|>
+330: <|117|>
+331: <|118|>
+332: <|119|>
+333: <|120|>
+334: <|121|>
+335: <|122|>
+336: <|123|>
+337: <|124|>
+338: <|125|>
+339: <|126|>
+340: <|127|>
+341: <|128|>
+342: <|129|>
+343: <|130|>
+344: <|131|>
+345: <|132|>
+346: <|133|>
+347: <|134|>
+348: <|135|>
+349: <|136|>
+350: <|137|>
+351: <|138|>
+352: <|139|>
+353: <|140|>
+354: <|141|>
+355: <|142|>
+356: <|143|>
+357: <|144|>
+358: <|145|>
+359: <|146|>
+360: <|147|>
+361: <|148|>
+362: <|149|>
+363: <|150|>
+364: <|151|>
+365: <|152|>
+366: <|153|>
+367: <|154|>
+368: <|155|>
+369: <|156|>
+370: <|157|>
+371: <|158|>
+372: <|159|>
+373: <|160|>
+374: <|161|>
+375: <|162|>
+376: <|163|>
+377: <|164|>
+378: <|165|>
+379: <|166|>
+380: <|167|>
+381: <|168|>
+382: <|169|>
+383: <|170|>
+384: <|171|>
+385: <|172|>
+386: <|173|>
+387: <|174|>
+388: <|175|>
+389: <|176|>
+390: <|177|>
+391: <|178|>
+392: <|179|>
+393: <|180|>
+394: <|181|>
+395: <|182|>
+396: <|183|>
+397: <|184|>
+398: <|185|>
+399: <|186|>
+400: <|187|>
+401: <|188|>
+402: <|189|>
+403: <|190|>
+404: <|191|>
+405: <|192|>
+406: <|193|>
+407: <|194|>
+408: <|195|>
+409: <|196|>
+410: <|197|>
+411: <|198|>
+412: <|199|>
+413: <|200|>
+414: <|201|>
+415: <|202|>
+416: <|203|>
+417: <|204|>
+418: <|205|>
+419: <|206|>
+420: <|207|>
+421: <|208|>
+422: <|209|>
+423: <|210|>
+424: <|211|>
+425: <|212|>
+426: <|213|>
+427: <|214|>
+428: <|215|>
+429: <|216|>
+430: <|217|>
+431: <|218|>
+432: <|219|>
+433: <|220|>
+434: <|221|>
+435: <|222|>
+436: <|223|>
+437: <|224|>
+438: <|225|>
+439: <|226|>
+440: <|227|>
+441: <|228|>
+442: <|229|>
+443: <|230|>
+444: <|231|>
+445: <|232|>
+446: <|233|>
+447: <|234|>
+448: <|235|>
+449: <|236|>
+450: <|237|>
+451: <|238|>
+452: <|239|>
+453: <|240|>
+454: <|241|>
+455: <|242|>
+456: <|243|>
+457: <|244|>
+458: <|245|>
+459: <|246|>
+460: <|247|>
+461: <|248|>
+462: <|249|>
+463: <|250|>
+464: <|251|>
+465: <|252|>
+466: <|253|>
+467: <|254|>
+468: <|255|>
+469: <|256|>
+470: <|257|>
+471: <|258|>
+472: <|259|>
+473: <|260|>
+474: <|261|>
+475: <|262|>
+476: <|263|>
+477: <|264|>
+478: <|265|>
+479: <|266|>
+480: <|267|>
+481: <|268|>
+482: <|269|>
+483: <|270|>
+484: <|271|>
+485: <|272|>
+486: <|273|>
+487: <|274|>
+488: <|275|>
+489: <|276|>
+490: <|277|>
+491: <|278|>
+492: <|279|>
+493: <|280|>
+494: <|281|>
+495: <|282|>
+496: <|283|>
+497: <|284|>
+498: <|285|>
+499: <|286|>
+500: <|287|>
+501: <|288|>
+502: <|289|>
+503: <|290|>
+504: <|291|>
+505: <|292|>
+506: <|293|>
+507: <|294|>
+508: <|295|>
+509: <|296|>
+510: <|297|>
+511: <|298|>
+512: <|299|>
+513: <|300|>
+514: <|301|>
+515: <|302|>
+516: <|303|>
+517: <|304|>
+518: <|305|>
+519: <|306|>
+520: <|307|>
+521: <|308|>
+522: <|309|>
+523: <|310|>
+524: <|311|>
+525: <|312|>
+526: <|313|>
+527: <|314|>
+528: <|315|>
+529: <|316|>
+530: <|317|>
+531: <|318|>
+532: <|319|>
+533: <|320|>
+534: <|321|>
+535: <|322|>
+536: <|323|>
+537: <|324|>
+538: <|325|>
+539: <|326|>
+540: <|327|>
+541: <|328|>
+542: <|329|>
+543: <|330|>
+544: <|331|>
+545: <|332|>
+546: <|333|>
+547: <|334|>
+548: <|335|>
+549: <|336|>
+550: <|337|>
+551: <|338|>
+552: <|339|>
+553: <|340|>
+554: <|341|>
+555: <|342|>
+556: <|343|>
+557: <|344|>
+558: <|345|>
+559: <|346|>
+560: <|347|>
+561: <|348|>
+562: <|349|>
+563: <|350|>
+564: <|351|>
+565: <|352|>
+566: <|353|>
+567: <|354|>
+568: <|355|>
+569: <|356|>
+570: <|357|>
+571: <|358|>
+572: <|359|>
+573: <|360|>
+574: <|361|>
+575: <|362|>
+576: <|363|>
+577: <|364|>
+578: <|365|>
+579: <|366|>
+580: <|367|>
+581: <|368|>
+582: <|369|>
+583: <|370|>
+584: <|371|>
+585: <|372|>
+586: <|373|>
+587: <|374|>
+588: <|375|>
+589: <|376|>
+590: <|377|>
+591: <|378|>
+592: <|379|>
+593: <|380|>
+594: <|381|>
+595: <|382|>
+596: <|383|>
+597: <|384|>
+598: <|385|>
+599: <|386|>
+600: <|387|>
+601: <|388|>
+602: <|389|>
+603: <|390|>
+604: <|391|>
+605: <|392|>
+606: <|393|>
+607: <|394|>
+608: <|395|>
+609: <|396|>
+610: <|397|>
+611: <|398|>
+612: <|399|>
+613: <|400|>
+614: <|401|>
+615: <|402|>
+616: <|403|>
+617: <|404|>
+618: <|405|>
+619: <|406|>
+620: <|407|>
+621: <|408|>
+622: <|409|>
+623: <|410|>
+624: <|411|>
+625: <|412|>
+626: <|413|>
+627: <|414|>
+628: <|415|>
+629: <|416|>
+630: <|417|>
+631: <|418|>
+632: <|419|>
+633: <|420|>
+634: <|421|>
+635: <|422|>
+636: <|423|>
+637: <|424|>
+638: <|425|>
+639: <|426|>
+640: <|427|>
+641: <|428|>
+642: <|429|>
+643: <|430|>
+644: <|431|>
+645: <|432|>
+646: <|433|>
+647: <|434|>
+648: <|435|>
+649: <|436|>
+650: <|437|>
+651: <|438|>
+652: <|439|>
+653: <|440|>
+654: <|441|>
+655: <|442|>
+656: <|443|>
+657: <|444|>
+658: <|445|>
+659: <|446|>
+660: <|447|>
+661: <|448|>
+662: <|449|>
+663: <|450|>
+664: <|451|>
+665: <|452|>
+666: <|453|>
+667: <|454|>
+668: <|455|>
+669: <|456|>
+670: <|457|>
+671: <|458|>
+672: <|459|>
+673: <|460|>
+674: <|461|>
+675: <|462|>
+676: <|463|>
+677: <|464|>
+678: <|465|>
+679: <|466|>
+680: <|467|>
+681: <|468|>
+682: <|469|>
+683: <|470|>
+684: <|471|>
+685: <|472|>
+686: <|473|>
+687: <|474|>
+688: <|475|>
+689: <|476|>
+690: <|477|>
+691: <|478|>
+692: <|479|>
+693: <|480|>
+694: <|481|>
+695: <|482|>
+696: <|483|>
+697: <|484|>
+698: <|485|>
+699: <|486|>
+700: <|487|>
+701: <|488|>
+702: <|489|>
+703: <|490|>
+704: <|491|>
+705: <|492|>
+706: <|493|>
+707: <|494|>
+708: <|495|>
+709: <|496|>
+710: <|497|>
+711: <|498|>
+712: <|499|>
+713: <|500|>
+714: <|501|>
+715: <|502|>
+716: <|503|>
+717: <|504|>
+718: <|505|>
+719: <|506|>
+720: <|507|>
+721: <|508|>
+722: <|509|>
+723: <|510|>
+724: <|511|>
+725: <|512|>
+726: <|513|>
+727: <|514|>
+728: <|515|>
+729: <|516|>
+730: <|517|>
+731: <|518|>
+732: <|519|>
+733: <|520|>
+734: <|521|>
+735: <|522|>
+736: <|523|>
+737: <|524|>
+738: <|525|>
+739: <|526|>
+740: <|527|>
+741: <|528|>
+742: <|529|>
+743: <|530|>
+744: <|531|>
+745: <|532|>
+746: <|533|>
+747: <|534|>
+748: <|535|>
+749: <|536|>
+750: <|537|>
+751: <|538|>
+752: <|539|>
+753: <|540|>
+754: <|541|>
+755: <|542|>
+756: <|543|>
+757: <|544|>
+758: <|545|>
+759: <|546|>
+760: <|547|>
+761: <|548|>
+762: <|549|>
+763: <|550|>
+764: <|551|>
+765: <|552|>
+766: <|553|>
+767: <|554|>
+768: <|555|>
+769: <|556|>
+770: <|557|>
+771: <|558|>
+772: <|559|>
+773: <|560|>
+774: <|561|>
+775: <|562|>
+776: <|563|>
+777: <|564|>
+778: <|565|>
+779: <|566|>
+780: <|567|>
+781: <|568|>
+782: <|569|>
+783: <|570|>
+784: <|571|>
+785: <|572|>
+786: <|573|>
+787: <|574|>
+788: <|575|>
+789: <|576|>
+790: <|577|>
+791: <|578|>
+792: <|579|>
+793: <|580|>
+794: <|581|>
+795: <|582|>
+796: <|583|>
+797: <|584|>
+798: <|585|>
+799: <|586|>
+800: <|587|>
+801: <|588|>
+802: <|589|>
+803: <|590|>
+804: <|591|>
+805: <|592|>
+806: <|593|>
+807: <|594|>
+808: <|595|>
+809: <|596|>
+810: <|597|>
+811: <|598|>
+812: <|599|>
+813: <|600|>
+814: <|601|>
+815: <|602|>
+816: <|603|>
+817: <|604|>
+818: <|605|>
+819: <|606|>
+820: <|607|>
+821: <|608|>
+822: <|609|>
+823: <|610|>
+824: <|611|>
+825: <|612|>
+826: <|613|>
+827: <|614|>
+828: <|615|>
+829: <|616|>
+830: <|617|>
+831: <|618|>
+832: <|619|>
+833: <|620|>
+834: <|621|>
+835: <|622|>
+836: <|623|>
+837: <|624|>
+838: <|625|>
+839: <|626|>
+840: <|627|>
+841: <|628|>
+842: <|629|>
+843: <|630|>
+844: <|631|>
+845: <|632|>
+846: <|633|>
+847: <|634|>
+848: <|635|>
+849: <|636|>
+850: <|637|>
+851: <|638|>
+852: <|639|>
+853: <|640|>
+854: <|641|>
+855: <|642|>
+856: <|643|>
+857: <|644|>
+858: <|645|>
+859: <|646|>
+860: <|647|>
+861: <|648|>
+862: <|649|>
+863: <|650|>
+864: <|651|>
+865: <|652|>
+866: <|653|>
+867: <|654|>
+868: <|655|>
+869: <|656|>
+870: <|657|>
+871: <|658|>
+872: <|659|>
+873: <|660|>
+874: <|661|>
+875: <|662|>
+876: <|663|>
+877: <|664|>
+878: <|665|>
+879: <|666|>
+880: <|667|>
+881: <|668|>
+882: <|669|>
+883: <|670|>
+884: <|671|>
+885: <|672|>
+886: <|673|>
+887: <|674|>
+888: <|675|>
+889: <|676|>
+890: <|677|>
+891: <|678|>
+892: <|679|>
+893: <|680|>
+894: <|681|>
+895: <|682|>
+896: <|683|>
+897: <|684|>
+898: <|685|>
+899: <|686|>
+900: <|687|>
+901: <|688|>
+902: <|689|>
+903: <|690|>
+904: <|691|>
+905: <|692|>
+906: <|693|>
+907: <|694|>
+908: <|695|>
+909: <|696|>
+910: <|697|>
+911: <|698|>
+912: <|699|>
+913: <|700|>
+914: <|701|>
+915: <|702|>
+916: <|703|>
+917: <|704|>
+918: <|705|>
+919: <|706|>
+920: <|707|>
+921: <|708|>
+922: <|709|>
+923: <|710|>
+924: <|711|>
+925: <|712|>
+926: <|713|>
+927: <|714|>
+928: <|715|>
+929: <|716|>
+930: <|717|>
+931: <|718|>
+932: <|719|>
+933: <|720|>
+934: <|721|>
+935: <|722|>
+936: <|723|>
+937: <|724|>
+938: <|725|>
+939: <|726|>
+940: <|727|>
+941: <|728|>
+942: <|729|>
+943: <|730|>
+944: <|731|>
+945: <|732|>
+946: <|733|>
+947: <|734|>
+948: <|735|>
+949: <|736|>
+950: <|737|>
+951: <|738|>
+952: <|739|>
+953: <|740|>
+954: <|741|>
+955: <|742|>
+956: <|743|>
+957: <|744|>
+958: <|745|>
+959: <|746|>
+960: <|747|>
+961: <|748|>
+962: <|749|>
+963: <|750|>
+964: <|751|>
+965: <|752|>
+966: <|753|>
+967: <|754|>
+968: <|755|>
+969: <|756|>
+970: <|757|>
+971: <|758|>
+972: <|759|>
+973: <|760|>
+974: <|761|>
+975: <|762|>
+976: <|763|>
+977: <|764|>
+978: <|765|>
+979: <|766|>
+980: <|767|>
+981: <|768|>
+982: <|769|>
+983: <|770|>
+984: <|771|>
+985: <|772|>
+986: <|773|>
+987: <|774|>
+988: <|775|>
+989: <|776|>
+990: <|777|>
+991: <|778|>
+992: <|779|>
+993: <|780|>
+994: <|781|>
+995: <|782|>
+996: <|783|>
+997: <|784|>
+998: <|785|>
+999: <|786|>
+1000: <|787|>
+1001: <|788|>
+1002: <|789|>
+1003: <|790|>
+1004: <|791|>
+1005: <|792|>
+1006: <|793|>
+1007: <|794|>
+1008: <|795|>
+1009: <|796|>
+1010: <|797|>
+1011: <|798|>
+1012: <|799|>
+1013: <|800|>
+1014: <|801|>
+1015: <|802|>
+1016: <|803|>
+1017: <|804|>
+1018: <|805|>
+1019: <|806|>
+1020: <|807|>
+1021: <|808|>
+1022: <|809|>
+1023: <|810|>
+1024: <|811|>
+1025: <|812|>
+1026: <|813|>
+1027: <|814|>
+1028: <|815|>
+1029: <|816|>
+1030: <|817|>
+1031: <|818|>
+1032: <|819|>
+1033: <|820|>
+1034: <|821|>
+1035: <|822|>
+1036: <|823|>
+1037: <|824|>
+1038: <|825|>
+1039: <|826|>
+1040: <|827|>
+1041: <|828|>
+1042: <|829|>
+1043: <|830|>
+1044: <|831|>
+1045: <|832|>
+1046: <|833|>
+1047: <|834|>
+1048: <|835|>
+1049: <|836|>
+1050: <|837|>
+1051: <|838|>
+1052: <|839|>
+1053: <|840|>
+1054: <|841|>
+1055: <|842|>
+1056: <|843|>
+1057: <|844|>
+1058: <|845|>
+1059: <|846|>
+1060: <|847|>
+1061: <|848|>
+1062: <|849|>
+1063: <|850|>
+1064: <|851|>
+1065: <|852|>
+1066: <|853|>
+1067: <|854|>
+1068: <|855|>
+1069: <|856|>
+1070: <|857|>
+1071: <|858|>
+1072: <|859|>
+1073: <|860|>
+1074: <|861|>
+1075: <|862|>
+1076: <|863|>
+1077: <|864|>
+1078: <|865|>
+1079: <|866|>
+1080: <|867|>
+1081: <|868|>
+1082: <|869|>
+1083: <|870|>
+1084: <|871|>
+1085: <|872|>
+1086: <|873|>
+1087: <|874|>
+1088: <|875|>
+1089: <|876|>
+1090: <|877|>
+1091: <|878|>
+1092: <|879|>
+1093: <|880|>
+1094: <|881|>
+1095: <|882|>
+1096: <|883|>
+1097: <|884|>
+1098: <|885|>
+1099: <|886|>
+1100: <|887|>
+1101: <|888|>
+1102: <|889|>
+1103: <|890|>
+1104: <|891|>
+1105: <|892|>
+1106: <|893|>
+1107: <|894|>
+1108: <|895|>
+1109: <|896|>
+1110: <|897|>
+1111: <|898|>
+1112: <|899|>
+1113: <|spk0|>
+1114: <|spk1|>
+1115: <|spk2|>
+1116: <|spk3|>
+1117: <|spk4|>
+1118: <|spk5|>
+1119: <|spk6|>
+1120: <|spk7|>
+1121: <|spk8|>
+1122: <|spk9|>
+1123: <|spk10|>
+1124: <|spk11|>
+1125: <|spk12|>
+1126: <|spk13|>
+1127: <|spk14|>
+1128: <|spk15|>
+1129: <|spltoken0|>
+1130: <|spltoken1|>
+1131: <|spltoken2|>
+1132: <|spltoken3|>
+1133: <|spltoken4|>
+1134: <|spltoken5|>
+1135: <|spltoken6|>
+1136: <|spltoken7|>
+1137: <|spltoken8|>
+1138: <|spltoken9|>
+1139: <|spltoken10|>
+1140: <|spltoken11|>
+1141: <|spltoken12|>
+1142: <|spltoken13|>
+1143: <|spltoken14|>
+1144: <|spltoken15|>
+1145: <|spltoken16|>
+1146: <|spltoken17|>
+1147: <|spltoken18|>
+1148: <|spltoken19|>
+1149: <|spltoken20|>
+1150: <|spltoken21|>
+1152: <unk>
+
+## module tree
+EncDecMultiTaskModel(
+  (preprocessor): AudioToMelSpectrogramPreprocessor(
+    (featurizer): FilterbankFeatures()
+  )
+  (encoder): ConformerEncoder(
+    (pre_encode): ConvSubsampling(
+      (out): Linear(in_features=4096, out_features=1024, bias=True)
+      (conv): MaskedConvSequential(
+        (0): Conv2d(1, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (1): ReLU(inplace=True)
+        (2): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=256)
+        (3): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        (4): ReLU(inplace=True)
+        (5): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=256)
+        (6): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        (7): ReLU(inplace=True)
+      )
+    )
+    (pos_enc): RelPositionalEncoding(
+      (dropout): Dropout(p=0.1, inplace=False)
+    )
+    (layers): ModuleList(
+      (0-31): 32 x ConformerLayer(
+        (norm_feed_forward1): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+        (feed_forward1): ConformerFeedForward(
+          (linear1): Linear(in_features=1024, out_features=4096, bias=True)
+          (activation): Swish()
+          (dropout): Dropout(p=0.1, inplace=False)
+          (linear2): Linear(in_features=4096, out_features=1024, bias=True)
+        )
+        (norm_conv): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+        (conv): ConformerConvolution(
+          (pointwise_conv1): Conv1d(1024, 2048, kernel_size=(1,), stride=(1,))
+          (depthwise_conv): CausalConv1D(1024, 1024, kernel_size=(9,), stride=(1,), groups=1024)
+          (batch_norm): BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, bias=True, track_running_stats=True)
+          (activation): Swish()
+          (pointwise_conv2): Conv1d(1024, 1024, kernel_size=(1,), stride=(1,))
+        )
+        (norm_self_att): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+        (self_attn): RelPositionMultiHeadAttention(
+          (linear_q): Linear(in_features=1024, out_features=1024, bias=True)
+          (linear_k): Linear(in_features=1024, out_features=1024, bias=True)
+          (linear_v): Linear(in_features=1024, out_features=1024, bias=True)
+          (linear_out): Linear(in_features=1024, out_features=1024, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (linear_pos): Linear(in_features=1024, out_features=1024, bias=False)
+        )
+        (norm_feed_forward2): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+        (feed_forward2): ConformerFeedForward(
+          (linear1): Linear(in_features=1024, out_features=4096, bias=True)
+          (activation): Swish()
+          (dropout): Dropout(p=0.1, inplace=False)
+          (linear2): Linear(in_features=4096, out_features=1024, bias=True)
+        )
+        (dropout): Dropout(p=0.1, inplace=False)
+        (norm_out): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+      )
+    )
+  )
+  (encoder_decoder_proj): Identity()
+  (transf_decoder): TransformerDecoderNM(
+    (_embedding): TransformerEmbedding(
+      (token_embedding): Embedding(7152, 1024, padding_idx=0)
+      (position_embedding): FixedPositionalEncoding()
+      (layer_norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+      (dropout): Dropout(p=0.1, inplace=False)
+    )
+    (_decoder): TransformerDecoder(
+      (final_layer_norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+      (layers): ModuleList(
+        (0-23): 24 x TransformerDecoderBlock(
+          (layer_norm_1): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+          (first_sub_layer): MultiHeadAttention(
+            (query_net): Linear(in_features=1024, out_features=1024, bias=True)
+            (key_net): Linear(in_features=1024, out_features=1024, bias=True)
+            (value_net): Linear(in_features=1024, out_features=1024, bias=True)
+            (out_projection): Linear(in_features=1024, out_features=1024, bias=True)
+            (attn_dropout): Dropout(p=0.1, inplace=False)
+            (layer_dropout): Dropout(p=0.1, inplace=False)
+          )
+          (layer_norm_2): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+          (second_sub_layer): MultiHeadAttention(
+            (query_net): Linear(in_features=1024, out_features=1024, bias=True)
+            (key_net): Linear(in_features=1024, out_features=1024, bias=True)
+            (value_net): Linear(in_features=1024, out_features=1024, bias=True)
+            (out_projection): Linear(in_features=1024, out_features=1024, bias=True)
+            (attn_dropout): Dropout(p=0.1, inplace=False)
+            (layer_dropout): Dropout(p=0.1, inplace=False)
+          )
+          (layer_norm_3): LayerNorm((1024,), eps=1e-05, elementwise_affine=True, bias=True)
+          (third_sub_layer): PositionWiseFF(
+            (dense_in): Linear(in_features=1024, out_features=4096, bias=True)
+            (dense_out): Linear(in_features=4096, out_features=1024, bias=True)
+            (layer_dropout): Dropout(p=0.1, inplace=False)
+          )
+        )
+      )
+    )
+  )
+  (log_softmax): TokenClassifier(
+    (dropout): Dropout(p=0.0, inplace=False)
+    (mlp): MultiLayerPerceptron(
+      (layer0): Linear(in_features=1024, out_features=7152, bias=True)
+    )
+  )
+  (loss): SmoothedCrossEntropyLoss()
+  (spec_augmentation): SpectrogramAugmentation(
+    (spec_augment): SpecAugment()
+  )
+  (val_loss): GlobalAverageLossMetric()
+  (wer): WER()
+  (bleu): BLEU()
+)
