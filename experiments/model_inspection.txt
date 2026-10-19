@@ -73,10 +73,10 @@
 110:                 text = asr.transcribe(path, lang=lang, mode=args.mode)
 
 ## lid.py
-5: docs/asr/caveats.md says the model "is language-conditioned; there is no LID" —
+5: docs/asr/caveats.md says the model "is language-conditioned; there is no LID" -
 9: The trick: the frozen canary2 prompt is
 15: position asks the model which language token belongs in the ``source_lang`` slot. It is
-23: confidence (0.68, and one exact 0.4993 tie) — the pair the model genuinely cannot
+23: confidence (0.68, and one exact 0.4993 tie): the pair the model genuinely cannot
 44: single clip. The model has already learnt not to emit the ~162 language tokens it
 73: model.
 83: # The language-independent head of the frozen prompt. Deliberately derived from the
@@ -85,7 +85,7 @@
 114: # _LANG_TOKEN_RE: <|itn|> and <|pnc|>. Without this they enter the candidate set
 115: # as if they were languages "itn"/"pnc" and can be returned as a prediction.
 116: _NOT_LANGUAGES = frozenset({"itn", "pnc"})
-139:     """``[7, 4, 18]`` — the prompt head up to (not including) the language slot."""
+139:     """``[7, 4, 18]``: the prompt head up to (not including) the language slot."""
 140:     return list(tokenizer.encode_prompt("hi")[:LID_PREFIX_LEN])
 147:     caller needs to restrict itself to ``tokenization_indic_canary.PROMPT_LANGS`` (which
 148:     is only a prompt-precompute cache, not a capability limit).
@@ -144,7 +144,7 @@
 504:         self.model = IndicCanaryMainModel(config)
 505:         self.lm_head = nn.Linear(config.d_model, config.vocab_size, bias=True)
 518:         The symptom is a model that runs and emits confident garbage: a random
-524:         never to initialize one — so skipping init costs nothing. A model built
+524:         never to initialize one, so skipping init costs nothing. A model built
 531:         return self.model.encoder
 534:         return self.model.decoder
 537:         return self.model.decoder.embedding.token_embedding
@@ -230,7 +230,7 @@
 19:     romanized swaps slot 7 to 10. (The itn_romanized_posttrain checkpoint line
 20:     is trained for all three modes.) Note production effectively runs
 21:     <|pnc|> because `punc=False` is silently dropped by NeMo's transcribe().
-24:     deviation — cannot trigger with <|notimestamp|> prompts).
+24:     deviation, cannot trigger with <|notimestamp|> prompts).
 37: SPL_FILE = "tokenizer_spl_tokens.model"
 38: MULTI_FILE = "tokenizer_multilingual.model"
 43: # Languages precomputed into the prompt table at init. Covers the fork's full
@@ -266,7 +266,7 @@
 122:           romanized  romanized=True             -> <|noitn|><|romanized|>
 123:         The prompt is ALWAYS exactly 10 tokens, so batching and prompt
 124:         stripping are mode-independent. Generation and stripping must use the
-125:         same (lang, itn, romanized) triple — strip_prompt_and_trim raises on
+125:         same (lang, itn, romanized) triple: strip_prompt_and_trim raises on
 129:             ids = list(self._prompt_table[lang])
 134:             base = next(iter(self._prompt_table.values()))
 137:             # cache the NATIVE prompt only; mode slots are applied per call
