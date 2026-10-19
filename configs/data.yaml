@@ -2,8 +2,7 @@ seed: 1234
 audio_base_directory: data
 # Synthetic manifests (after filtering) that form the training pool.
 synthetic_manifests:
-  - data/manifests/synth_inhouse_omnivoice.filtered.jsonl
-  - data/manifests/synth_gemini.filtered.jsonl
+  - data/manifests/synth_inhouse_omnivoice_neutral.filtered.jsonl
 # Split by sentence: no synthetic dev sentence appears in train.
 synthetic_split_ratios:
   train: 0.95

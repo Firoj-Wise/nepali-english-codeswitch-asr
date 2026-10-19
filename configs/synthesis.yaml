@@ -41,11 +41,11 @@ systems:
       - {voice_id: deepak, style: neutral, reference_audio: /home/oem/wiseyak_backup/firojpaudel/omnivoice-tts-ft/Deepak_nep.wav, reference_text: null}
 
 filter:
-  model_id: REPLACE_WITH_INDEPENDENT_NEPALI_ASR
+  model_id: openai/whisper-large-v3-turbo
   device: cuda:0
   batch_size: 16
   scope: devanagari_only
-  max_round_trip_cer: 0.15
+  max_round_trip_cer: 0.20
   min_duration_seconds: 1.0
   max_duration_seconds: 30.0
   min_characters_per_second: 4.0

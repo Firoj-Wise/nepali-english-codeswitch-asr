@@ -24,6 +24,11 @@ class HuggingFaceTranscriber:
         self._pipeline = pipeline(_TASK, model=model_id, device=device)
         self._batch_size = batch_size
         self._audio_base = audio_base
+        self._generate_kwargs = (
+            {"language": "ne", "task": "transcribe"}
+            if "whisper" in model_id.lower()
+            else {}
+        )
 
     def transcribe(self, utterances: Sequence[Utterance]) -> list[str]:
         inputs = [
@@ -31,5 +36,8 @@ class HuggingFaceTranscriber:
              _RATE_KEY: constants.SAMPLE_RATE_HZ}
             for u in utterances
         ]
-        outputs = self._pipeline(inputs, batch_size=self._batch_size)
+        kwargs: dict[str, object] = {"batch_size": self._batch_size}
+        if self._generate_kwargs:
+            kwargs["generate_kwargs"] = self._generate_kwargs
+        outputs = self._pipeline(inputs, **kwargs)
         return [str(item[_TEXT_KEY]) for item in outputs]

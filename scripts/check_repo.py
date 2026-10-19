@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 PROSE_SUFFIXES = (".md", ".txt", ".py")
-SKIP_PARTS = {".venv", ".git", "__pycache__", "data", "checkpoints", "models"}
+SKIP_PARTS = {".venv", ".git", "__pycache__", "data", "checkpoints", "models", "scratch"}
 BANNED_PHRASES_FILE = ROOT / "scripts" / "banned_phrases.txt"
 SELF = Path(__file__).resolve()
 

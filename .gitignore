@@ -6,3 +6,4 @@ experiments/*/checkpoints/
 *.flac
 models/
 .env
+scratch/
