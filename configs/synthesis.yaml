@@ -12,7 +12,7 @@ max_failure_fraction: 0.05
 
 systems:
   gemini:
-    model: gemini-3.8-flash-tts
+    model: gemini-2.5-flash-preview-tts
     api_key_env: GEMINI_API_KEY
     max_retries: 5
     retry_status_codes: [429, 500, 503]

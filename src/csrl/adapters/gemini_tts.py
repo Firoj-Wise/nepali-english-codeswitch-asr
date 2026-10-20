@@ -52,9 +52,11 @@ class GeminiSettings:
 
 class GeminiTts:
     def __init__(self, settings: GeminiSettings) -> None:
+        from dotenv import load_dotenv
         from google import genai  # type: ignore[import-not-found]
         from google.genai import errors  # type: ignore[import-not-found]
 
+        load_dotenv()
         api_key = os.environ.get(settings.api_key_env)
         if not api_key:
             raise ConfigError(f"environment variable {settings.api_key_env} is not set")
@@ -66,25 +68,31 @@ class GeminiTts:
     def data_source(self) -> DataSource:
         return DataSource.SYNTH_GEMINI
 
-    def _request_input(self, text: str, voice: VoiceSpec) -> list[dict[str, object]]:
-        block: dict[str, object] = {_TYPE: _TEXT, _TEXT: text}
+    def synthesize(self, text: str, voice: VoiceSpec) -> tuple[np.ndarray, int]:
+        from google.genai import types  # type: ignore[import-not-found]
+
+        prompt_text = text
         if voice.style != DeliveryStyle.NEUTRAL.value:
             if voice.style not in self._settings.style_prompts:
                 raise ConfigError(f"no style prompt configured for style {voice.style}")
-            block[_ANNOTATIONS] = [
-                {_TYPE: _SPEECH_METADATA, _STYLE: self._settings.style_prompts[voice.style]}
-            ]
-        return [{_TYPE: _USER_INPUT, _CONTENT: [block]}]
+            prompt_text = f"{self._settings.style_prompts[voice.style]}: {text}"
 
-    def synthesize(self, text: str, voice: VoiceSpec) -> tuple[np.ndarray, int]:
         attempt = 0
         while True:
             try:
-                interaction = self._client.interactions.create(
+                response = self._client.models.generate_content(
                     model=self._settings.model,
-                    input=self._request_input(text, voice),
-                    response_format={_TYPE: _AUDIO},
-                    generation_config={_SPEECH_CONFIG: [{_VOICE: voice.voice_id}]},
+                    contents=prompt_text,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["AUDIO"],
+                        speech_config=types.SpeechConfig(
+                            voice_config=types.VoiceConfig(
+                                prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                    voice_name=voice.voice_id
+                                )
+                            )
+                        ),
+                    ),
                 )
                 break
             except self._api_error as error:
@@ -96,10 +104,14 @@ class GeminiTts:
                     attempt += 1
                     continue
                 raise TtsError(f"Gemini API error {code}: {error}") from error
-        if interaction.output_audio is None:
-            raise TtsError("Gemini response contained no audio")
-        payload = base64.b64decode(interaction.output_audio.data)
-        samples, sample_rate = soundfile.read(io.BytesIO(payload), dtype=_FLOAT_DTYPE)
-        if samples.ndim != 1:
-            raise TtsError(f"expected mono audio, got shape {samples.shape}")
-        return samples, int(sample_rate)
+        if (not response.candidates
+                or not response.candidates[0].content
+                or not response.candidates[0].content.parts):
+            raise TtsError("Gemini response contained no content")
+        part = response.candidates[0].content.parts[0]
+        if part.inline_data is None or part.inline_data.data is None:
+            raise TtsError("Gemini response contained no inline audio data")
+        raw_bytes = part.inline_data.data
+        samples = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        sample_rate = 24000
+        return samples, sample_rate

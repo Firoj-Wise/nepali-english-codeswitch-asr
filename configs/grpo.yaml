@@ -2,8 +2,8 @@
 seed: 1234
 manifest_base_directory: data
 train_manifest: data/splits/synthetic_train.jsonl
-dev_manifest: data/splits/real_dev.jsonl
-init_checkpoint: experiments/S1-REPLACE/checkpoints/best.pt
+dev_manifest: data/splits/synthetic_dev.jsonl
+init_checkpoint: experiments/S1-20261020-sft-run02/checkpoints/best.pt
 batch_size: 4
 group_size: 8
 sampling_temperature: 1.0
@@ -11,9 +11,9 @@ update_epochs: 2
 dynamic_sampling: true
 max_empty_fraction: 0.2
 learning_rate: 1.0e-6
-max_steps: 1500
-eval_every_steps: 100
-log_samples_every: 100
+max_steps: 500
+eval_every_steps: 50
+log_samples_every: 50
 max_grad_norm: 1.0
 max_new_tokens: 256
 objective:

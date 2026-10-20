@@ -28,6 +28,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from tqdm import tqdm
+
 import torch
 
 from csrl.application.ports import EncoderOutput
@@ -92,7 +94,7 @@ class OfficialTranscriber:
 
     def transcribe(self, utterances: Sequence[Utterance]) -> list[str]:
         outputs = []
-        for utterance in utterances:
+        for utterance in tqdm(utterances, desc="Transcribing (S0 baseline)", unit="clip"):
             text = self._model(
                 str(self._audio_base / utterance.audio_path),
                 lang=self._settings.language_code,
@@ -130,7 +132,8 @@ class NemoTokenizer:
         return [int(i) for i in self._tokenizer.text_to_ids(text, self._language)]
 
     def decode(self, token_ids: list[int]) -> str:
-        return str(self._tokenizer.ids_to_text(token_ids))
+        text = str(self._tokenizer.ids_to_text(token_ids))
+        return text.replace("<unk>", "").strip()
 
 
 class NemoCanaryBackbone:

@@ -1,0 +1,11 @@
+{
+  "metric_version": 1,
+  "utterance_count": 1000,
+  "mer": 0.20799481067055867,
+  "wer": 0.3073390863747922,
+  "cer": 0.22515203113597665,
+  "scr": 0.08708732483572164,
+  "empty_hypothesis_count": 0,
+  "hallucination_flag_count": 2,
+  "scr_ne": 0.08708732483572164
+}

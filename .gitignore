@@ -2,8 +2,24 @@
 __pycache__/
 data/
 experiments/*/checkpoints/
+**/checkpoints/**
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
 *.wav
 *.flac
+*.mp3
 models/
 .env
 scratch/
+*.log
+
+# Agent guidelines and internal files
+AGENTS.md
+CLAUDE.md
+.agents/
+.claude/
+.gemini/
+list_of_links.txt

@@ -3,13 +3,15 @@ audio_base_directory: data
 # Synthetic manifests (after filtering) that form the training pool.
 synthetic_manifests:
   - data/manifests/synth_inhouse_omnivoice_neutral.filtered.jsonl
+  - data/manifests/synth_gemini_neutral.filtered.jsonl
+  - data/manifests/synth_gemini_neutral.filtered.telephony.jsonl
 # Split by sentence: no synthetic dev sentence appears in train.
 synthetic_split_ratios:
-  train: 0.95
-  dev: 0.05
+  train: 0.90
+  dev: 0.10
 # Real human recordings. Never used for training. Split by speaker into a real dev set
 # (model selection) and a real test set (final numbers only).
-real_recordings_manifest: data/manifests/real_recordings.jsonl
+real_recordings_manifest: data/manifests/real_all_manifest.jsonl
 real_split_ratios:
   dev: 0.25
   test: 0.75
