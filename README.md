@@ -33,6 +33,10 @@ Evaluations conducted on the frozen real test split (`data/splits/real_test.json
 
 *Definitions*: MER (Mixed Error Rate: Word Error Rate on Latin script, Character Error Rate on Devanagari script); SPER (Switch-Point Error Rate); SCR (Script Confusion Rate).
 
+<p align="center">
+  <img src="reports/figures/fig1_asr_comparison.png" width="95%" alt="Primary Benchmark Comparison on Frozen Real Test Split"/>
+</p>
+
 ### Paired Bootstrap Significance (10,000 Resamples, Seed 1234)
 
 | Comparison | Metric | Point Estimate | 95% Confidence Interval | Statistically Significant |
@@ -45,6 +49,10 @@ Evaluations conducted on the frozen real test split (`data/splits/real_test.json
 | **S4 vs S1** | SPER | -0.07% | [-0.12%, -0.03%] | Yes (p < 0.05) |
 | **S4 vs S1** | SCR English | -0.10% | [-0.13%, -0.06%] | Yes (p < 0.05) |
 
+<p align="center">
+  <img src="reports/figures/fig4_forest.png" width="95%" alt="Paired Bootstrap Confidence Intervals Forest Plot"/>
+</p>
+
 ---
 
 ## Monolingual Retention (Zero Catastrophic Forgetting)
@@ -55,6 +63,10 @@ To verify that synthetic code-switched adaptation preserves monolingual capabili
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **BHASAANUVAD** | Nepali | 1,000 utts (1.95h) | 20.80% MER | **18.42% MER** | -2.38% | [-3.99%, -0.74%] | Statistically significant gain (p < 0.05) |
 | **LibriSpeech** | English | 1,000 utts (1.50h) | 3.33% WER | **3.38% WER** | +0.05% | [-0.17%, +0.30%] | Zero degradation (p > 0.05) |
+
+<p align="center">
+  <img src="reports/figures/fig3_monolingual.png" width="95%" alt="Monolingual Benchmark Stability on Nepali and English"/>
+</p>
 
 ---
 
@@ -69,6 +81,10 @@ Evaluating the contribution of supervised fine-tuning, auxiliary token-level scr
 | **SFT + Script Gate** | S2 | `S2-20261020-real-dev-run01` | 20.04 | 32.38 | 7.41 | Linear classifier logit biasing introduces slight boundary rigidity |
 | **Script-Aware GRPO** | S4 | `S4-20261020-real-dev-run01` | **19.80** | **32.18** | **6.36** | Joint reward optimizes sequence-level script fidelity |
 | **GRPO + Script Gate** | S5 | `S5-20261020-real-dev-run01` | 20.02 | 32.35 | 7.39 | Logit gate restricts RL exploration at boundaries |
+
+<p align="center">
+  <img src="reports/figures/fig2_ablation.png" width="95%" alt="Objective Ablation on Real Development Split"/>
+</p>
 
 ---
 
