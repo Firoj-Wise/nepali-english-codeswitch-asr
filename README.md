@@ -1,4 +1,6 @@
-# csrl: Script-Aware Reinforcement Learning for Nepali-English Code-Switched ASR
+# csrl: Synthetic-to-Real Adaptation for Nepali-English Code-Switched ASR
+
+> **A Spontaneous Podcast Benchmark and an Analysis of GRPO in Encoder-Decoder Models**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -15,7 +17,7 @@ Training uses 100 percent synthetic code-switched speech synthesized via a dual-
 Nepali speakers frequently interleave English lexical items into Nepali conversational speech. Standard multilingual ASR systems often confuse scripts (writing English loanwords in Devanagari script or Nepali words in Latin script) and exhibit high error rates at linguistic switch points.
 
 This repository provides:
-1. **Benchmark dataset**: 16.35 hours of verified spontaneous Nepali-English code-switched podcast speech (13,044 utterances: 10,214 test, 2,830 dev) released on Hugging Face at [`SamaFiroz/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts). Dev and test splits are strictly speaker-disjoint (zero overlapping speakers).
+1. **Benchmark dataset**: 15.45 hours of verified spontaneous Nepali-English code-switched podcast speech (13,044 utterances: 10,214 test, 2,830 dev) released on Hugging Face at [`SamaFiroz/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts). Dev and test splits are strictly speaker-disjoint (zero overlapping speakers).
 2. **Two-stage adaptation methodology**: Supervised Fine-Tuning (SFT) on purely synthetic speech, followed by sequence-level Group Relative Policy Optimization (GRPO) with a joint Mixed Error Rate (MER) and Script Confusion Rate (SCR) reward.
 3. **Reproducibility**: Every number reported in the paper is directly traceable to run artifacts in `experiments/` and verified in `experiments/registry.md`.
 
@@ -23,7 +25,7 @@ This repository provides:
 
 ## Primary Results
 
-Evaluations conducted on the frozen real test split (`data/splits/real_test.jsonl`, 10,214 utterances, 12.80 hours, SHA256 verified) using metric version 1:
+Evaluations conducted on the frozen real test split (`data/splits/real_test.jsonl`, 10,214 utterances, 11.90 hours, SHA256 verified) using metric version 1:
 
 | System | Run ID | Split | MER (%) | WER (%) | CER (%) | SPER (%) | SCR English (%) | Overall SCR (%) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -82,8 +84,8 @@ Evaluating the contribution of supervised fine-tuning, auxiliary token-level scr
 | **Zero-Shot Base** | S0 | `S0-20261021-real-dev-clean-v2` | 20.14 | 32.23 | 32.63 | 5.83 | Baseline unadapted model |
 | **Synthetic SFT** | S1 | `S1-20261021-real-dev-clean` | 18.92 | 29.11 | 25.60 | 5.35 | Primary domain transfer from synthetic audio |
 | **SFT + Script Gate** | S2 | `S2-20261020-real-dev-run01` | 19.14 | 29.35 | 25.75 | 5.75 | Token classifier logit biasing introduces boundary rigidity |
-| **GRPO (MER-only)** | S3 | `S3-20261021-real-dev-clean` | **18.89** | **29.08** | **25.53** | **5.24** | $\lambda_{\text{scr}} = 0.0$ ablation |
-| **GRPO (Joint SCR+MER)** | S4 | `S4-20261021-real-dev-clean` | **18.89** | **29.08** | **25.53** | **5.24** | $\lambda_{\text{scr}} = 0.5$ joint reward policy optimization |
+| **GRPO (MER-only)** | S3 | `S3-20261021-real-dev-clean` | **18.89** | **29.08** | **25.53** | **5.24** | $\lambda_{\text{scr}} = 0.0$ ablation; selects identical step-50 checkpoint |
+| **GRPO (Joint SCR+MER)** | S4 | `S4-20261021-real-dev-clean` | **18.89** | **29.08** | **25.53** | **5.24** | $\lambda_{\text{scr}} = 0.5$ joint reward; script term inactive on synthetic data |
 | **GRPO + Script Gate** | S5 | `S5-20261020-grpo-gate-run01` | 19.12 | 29.32 | 25.70 | 5.72 | Logit gate restricts RL exploration at boundaries |
 
 <p align="center">

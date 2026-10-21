@@ -14,6 +14,8 @@ from csrl.infrastructure.logging import configure_logging, get_logger
 _logger = get_logger(__name__)
 
 def main():
+    import logging
+    configure_logging(logging.INFO, None)
     dev_path = Path("data/splits/real_dev.jsonl")
     test_path = Path("data/splits/real_test.jsonl")
     
