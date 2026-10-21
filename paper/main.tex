@@ -74,7 +74,7 @@ Code-Switched Speech Recognition}}
     \vspace{-0.5cm}
     \begin{abstract}
     \noindent
-    Nepali--English code-switched conversational speech presents severe challenges for automatic speech recognition (ASR), chiefly through \emph{script confusion} (inappropriate mixing of Devanagari and Latin orthography) and elevated error rates at language switch points. Supervised fine-tuning (SFT) can adapt multilingual foundation models, but human code-switched audio is prohibitively expensive to collect and annotate. We propose a two-stage adaptation framework trained entirely on synthetic speech. Stage~1 applies SFT on audio synthesized via a multi-speaker, dual-engine TTS pipeline (OmniVoice and Gemini TTS). Stage~2 optimizes sequence-level policy decisions via Group Relative Policy Optimization (GRPO) using a joint reward over Mixed Error Rate (MER) and Script Confusion Rate (SCR). We evaluate on a newly curated benchmark of 10,214 spontaneous human podcast utterances (12.80\,h test split). Synthetic SFT transfers zero-shot to spontaneous human speech, reducing MER from 26.96\% to 24.60\% ($-2.36\pp$) and switch-point error rate (SPER) from 41.63\% to 36.24\% ($-5.39\pp$). Script-aware GRPO further drives SPER down to 36.17\% and English script confusion to 7.44\%, achieving statistically significant fine-grained boundary improvements over SFT (paired bootstrap, $p<0.05$). On monolingual benchmarks, the adapted model improves Nepali MER by 2.38\pp{} and preserves English WER without significant degradation. Code, configurations, and the full 16.35\,h evaluation benchmark (13,044 utterances) are publicly released.
+    Nepali--English code-switched conversational speech presents severe challenges for automatic speech recognition (ASR), chiefly through \emph{script confusion} (inappropriate mixing of Devanagari and Latin orthography) and elevated error rates at language switch points. Supervised fine-tuning (SFT) can adapt multilingual foundation models, but human code-switched audio is prohibitively expensive to collect and annotate. We propose a two-stage adaptation framework trained entirely on synthetic speech. Stage~1 applies SFT on audio synthesized via a multi-speaker, dual-engine TTS pipeline (OmniVoice and Gemini TTS). Stage~2 optimizes sequence-level policy decisions via Group Relative Policy Optimization (GRPO) using a joint reward over Mixed Error Rate (MER) and Script Confusion Rate (SCR). We evaluate on a newly curated, fully verified benchmark of 10,214 spontaneous human podcast utterances (12.80\,h test split). Synthetic SFT transfers zero-shot to spontaneous human speech, reducing MER from 23.40\% to 21.52\% ($-1.88\pp$) and switch-point error rate (SPER) from 35.89\% to 28.77\% ($-7.12\pp$). Script-aware GRPO provides targeted fine-grained boundary regularization, driving SPER to 28.70\% and English script confusion to 3.83\%, achieving statistically significant switch-point improvements over SFT (paired bootstrap, $p<0.05$). On monolingual benchmarks, the adapted model improves Nepali MER by 2.38\pp{} and preserves English lexical WER (3.38\% vs.\ 3.33\%), with slight orthographic MER trade-offs. Code, configurations, and the full 16.35\,h evaluation benchmark (13,044 utterances) are publicly released.
     \end{abstract}
     \vspace{0.25cm}
   \end{@twocolumnfalse}
@@ -91,13 +91,13 @@ Despite the recent scaling of multilingual speech foundation models~\cite{canary
 
 Traditional approaches attempt to resolve script confusion through auxiliary token-level language identification or diarization heads~\cite{token_diarization2022}. However, hard token-level classification objectives during autoregressive generation often introduce excessive stiffness at boundary tokens, frequently inducing mis-transliterations when acoustic ambiguity arises.
 
-Meanwhile, sequence-level policy optimization such as Group Relative Policy Optimization (GRPO) has been shown to align speech recognition decoders with non-differentiable downstream metrics~\cite{amazon_grpo2025,synthetic_grpo2026,dr_grpo2025}. While Ye and Vickers~\cite{ye_vickers2026} evaluated GRPO on synthetic audio with decoder-only audio language models, whether sequence-level RL can resolve script confusion in encoder--decoder architectures evaluated on spontaneous human conversational speech remains an open question.
+Meanwhile, sequence-level policy optimization such as Group Relative Policy Optimization (GRPO) has been explored to align speech recognition models with non-differentiable downstream metrics~\cite{amazon_grpo2025}. While prior investigations explored policy gradients for decoder-only speech language models, whether sequence-level RL can resolve orthographic script confusion in multilingual encoder--decoder architectures evaluated on spontaneous human conversational speech remains an open question.
 
 In this work, our primary contributions are:
 \begin{itemize}
   \item \textbf{Synthetic-to-real transfer:} we demonstrate that an encoder--decoder ASR model fine-tuned exclusively on 0.95\,h of synthetic code-switched audio effectively transfers zero-shot to unconstrained human conversational speech.
   \item \textbf{Script-aware GRPO:} we formulate a joint sequence reward combining MER and SCR. We show that sequence-level RL outperforms token-level inference gating on real development speech.
-  \item \textbf{Open benchmark and rigorous evaluation:} we release 16.35\,h (13,044 utterances; 10,214 test, 2,830 dev) of verified Nepali--English podcast audio on Hugging Face, validating all experimental claims with paired bootstrap confidence intervals (10,000 resamples) and monolingual retention checks.
+  \item \textbf{Open benchmark and rigorous evaluation:} we release 16.35\,h (13,044 utterances; 10,214 test, 2,830 dev) of verified Nepali--English podcast audio on Hugging Face, validating all experimental claims with paired bootstrap confidence intervals (1,000 resamples) and monolingual retention checks.
 \end{itemize}
 
 \section{Related Work}
@@ -108,7 +108,7 @@ Early investigations into South Asian code-switching focused on hybrid acoustic 
 Prior work addressed script ambiguity by attaching auxiliary frame- or token-level language identification heads~\cite{token_diarization2022}. While effective on scripted speech, hard token-level constraints often force premature orthographic commitments that degrade spontaneous speech recognition.
 
 \paragraph{Reinforcement learning in speech.}
-Policy-gradient and minimum word error rate (MWER) training have an extensive history in ASR. GRPO~\cite{amazon_grpo2025,ye_vickers2026} eliminates the need for a separate critic network by estimating advantages from sampled candidate groups. Kumar et al.~\cite{synthetic_grpo2026} demonstrated GRPO's efficacy when training exclusively on synthetic audio. We extend this paradigm to mixed-script sequence rewards evaluated on real spontaneous conversational recordings.
+Policy-gradient and minimum word error rate (MWER) training have an extensive history in ASR~\cite{prabhavalkar2018mwer}. GRPO~\cite{shao2024deepseekmath,amazon_grpo2025} eliminates the need for a separate critic network by estimating advantages from sampled candidate groups. Furthermore, training speech recognition models on synthetic acoustic data has proven effective for low-resource domains~\cite{rossenbach2020generating,fazel2020synthasr}. We bridge these paradigms to formulate mixed-script sequence rewards evaluated on real spontaneous conversational recordings.
 
 \section{Dataset Construction}
 
@@ -121,12 +121,12 @@ Audio was synthesized utilizing two complementary acoustic engines:
   \item \textbf{Gemini TTS:} multi-speaker neural synthesis (\texttt{gemini-2.5-flash}) providing diverse English accentuation across four distinct vocal timbres.
 \end{itemize}
 We pair these engines because neither system alone satisfies the dual acoustic demands of code-switched speech. Commercial multilingual engines produce natural English intonation and diverse timbres, but often distort native Nepali retroflex consonants and schwa deletion. Conversely, the fine-tuned OmniVoice captures authentic Devanagari phonology and colloquial code-mix phrasing, but lacks multi-accent English variety. Combining both provides rich phonetic coverage across both languages and prevents the ASR encoder from overfitting to artifacts of any single vocoder.
-Each sentence was synthesized across multiple voices ($N=2$) to ensure acoustic variety. All audio was sampled at 16\,kHz mono, augmented with telephony bandpass filtering (300--3400\,Hz) and 10--30\,dB SNR noise to simulate channel variability and bridge the domain gap to noisy real-world speech. Utterances were screened through an independent round-trip filter (\texttt{whisper-large-v3-turbo} in Devanagari-only scope), pruning clips with CER $> 0.20$. The resulting synthetic training split comprises 517 verified utterances (0.95\,h).
+Each sentence was synthesized across multiple voices ($N=2$) to ensure acoustic variety. From 258 distinct generated code-switched sentences, all audio was sampled at 16\,kHz mono, augmented with telephony bandpass filtering (300--3400\,Hz) and 10--30\,dB SNR noise to simulate channel variability and bridge the domain gap to noisy real-world speech. Utterances were screened through an independent round-trip filter (\texttt{whisper-large-v3-turbo} in Devanagari-only scope), pruning clips with CER $> 0.20$. The resulting synthetic training split comprises 517 verified utterances (0.95\,h).
 
 \subsection{Real Spontaneous Benchmark}
-To rigorously assess generalization, we curated a spontaneous conversational benchmark from long-form public Nepali podcasts. Unlike read speech, podcast audio contains spontaneous turn-taking, ambient noise, conversational laughter, and natural speech rate variations.
+To rigorously assess generalization, we curated a spontaneous conversational benchmark from long-form public Nepali podcasts across 28 diverse episodes. Unlike read speech, podcast audio contains spontaneous turn-taking, ambient noise, conversational laughter, and natural speech rate variations.
 
-Transcripts adhere to a strict orthographic convention: native Nepali matrix words are transcribed in Devanagari, English words and embedded phrases are transcribed in Latin script as spoken (not transliterated), and attached Nepali postpositions are separated into distinct Devanagari tokens (e.g., Latin root ``\textit{phone}'' followed by separated Devanagari postposition ``\textit{-ma}'', rather than fused into a single compound). Acoustic loop artifacts (233 clips) were identified and cataloged in an audit log.
+Transcripts adhere to a strict orthographic convention: native Nepali matrix words are transcribed in Devanagari, English words and embedded phrases are transcribed in Latin script as spoken (not transliterated), and attached Nepali postpositions are separated into distinct Devanagari tokens (e.g., Latin root ``\textit{phone}'' followed by separated Devanagari postposition ``\textit{-ma}'', rather than fused into a single compound). Acoustic loop artifacts (233 clips exhibiting repetitive background loops) were detected during auditing and quarantined; the remaining 13,044 clean clips constitute the verified benchmark.
 
 The benchmark is partitioned into:
 \begin{itemize}
@@ -139,7 +139,7 @@ The full 16.35\,h benchmark is available on the Hugging Face Hub under a CC~BY~4
   \centering
   \includegraphics[width=0.94\linewidth]{fig1_asr_comparison.pdf}
   \vspace{-0.25cm}
-  \caption{Primary benchmark results on the 10,214-utterance Frozen Real Test Split. (a) Macro transcription error rates (MER, WER, CER). (b) Code-switch and script fidelity metrics (SPER, English script confusion $\SCRen$, and overall SCR). Synthetic SFT provides primary transfer, while script-aware GRPO (\sys{4}) yields consistent fine-grained gains.}
+  \caption{Primary benchmark results on the 10,214-utterance Frozen Real Test Split. (a) Macro transcription error rates (MER, WER, CER). (b) Code-switch and script fidelity metrics (SPER, English script confusion $\SCRen$, and overall SCR). The $-7.19\pp$ SPER bracket denotes total pipeline reduction vs.\ baseline ($p < 0.05$), with synthetic SFT providing primary transfer ($-7.12\pp$) and script-aware GRPO (\sys{4}) contributing targeted fine-grained boundary regularization ($-0.07\pp$, $p < 0.05$).}
   \label{fig:main_benchmark}
   \vspace{-0.15cm}
 \end{figure*}
@@ -147,7 +147,7 @@ The full 16.35\,h benchmark is available on the Hugging Face Hub under a CC~BY~4
 \section{Methodology}
 
 \subsection{Base Architecture and Adaptation}
-We adopt \texttt{indic-transcribe-flex}~\cite{indic_transcribe_flex}, a 1.6-billion parameter multilingual model comprising a frozen FastConformer acoustic encoder and an autoregressive Transformer decoder with a 7,152-token SentencePiece aggregate vocabulary. Given an acoustic feature sequence $X$, the encoder produces representations $H = \text{Encoder}(X) \in \mathbb{R}^{T' \times D}$. 
+We adopt \texttt{indic-transcribe-flex}~\cite{indic_transcribe_flex}, a 1.2-billion parameter multilingual model built on the Canary-1B-v2 architecture comprising a frozen FastConformer acoustic encoder and an autoregressive Transformer decoder with a 7,152-token SentencePiece aggregate vocabulary. Given an acoustic feature sequence $X$, the encoder produces representations $H = \text{Encoder}(X) \in \mathbb{R}^{T' \times D}$. 
 During adaptation, the encoder parameters remain completely frozen to preserve general acoustic representations. We apply Low-Rank Adaptation (LoRA)~\cite{hu2022lora} to the decoder query ($W_q$) and value ($W_v$) projection layers:
 \begin{equation}
   W = W_0 + \frac{\alpha_{\text{lora}}}{r} B A,
@@ -189,7 +189,7 @@ As an architectural comparison, an auxiliary script classification head is attac
 where $s_t \in \{0, 1\}$ denotes Devanagari versus Latin script. Training minimizes $\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{SFT}} + \lambda_g \mathcal{L}_{\text{BCE}}$ with $\lambda_g = 0.1$. At inference, logits for candidate tokens matching the predicted script are biased by $\gamma \log P_{\text{gate}}$ ($\gamma = 2.0$, applied when $P_{\text{gate}} > 0.9$).
 
 \subsection{Stage 2: Script-Aware Policy Optimization (GRPO)}
-While SFT aligns the decoder with code-switched acoustics, cross-entropy penalizes script confusion equally with ordinary lexical substitutions. To directly incentivize orthographic fidelity at language boundaries, we implement Group Relative Policy Optimization (GRPO)~\cite{shao2024deepseekmath,amazon_grpo2025,ye_vickers2026} trained directly on the 517 synthetic utterances.
+While SFT aligns the decoder with code-switched acoustics, cross-entropy penalizes script confusion equally with ordinary lexical substitutions. To directly incentivize orthographic fidelity at language boundaries, we implement Group Relative Policy Optimization (GRPO)~\cite{shao2024deepseekmath,amazon_grpo2025} trained on the 517 synthetic utterances.
 
 For each acoustic sequence $x$, the policy $\pi_\theta$ samples a group of $G = 8$ candidate transcriptions $\{y^{(1)}, \dots, y^{(G)}\}$ at temperature $\tau = 1.0$. A scalar reward $R(y^{(g)}, y^*)$ is computed against ground truth $y^*$. Group advantages are normalized:
 \begin{equation}
@@ -206,7 +206,7 @@ where $\mu_G$ and $\sigma_G$ are the mean and standard deviation of rewards with
     &\quad - \beta D_{\text{KL}}(\pi_\theta \parallel \pi_{\text{ref}}) \Bigg],
 \end{aligned}
 \end{equation}
-where $r_t^{(g)}(\theta) = \frac{\pi_\theta(y_t^{(g)} \mid y_{<t}^{(g)}, x)}{\pi_{\text{old}}(y_t^{(g)} \mid y_{<t}^{(g)}, x)}$ denotes the per-token importance sampling ratio at decoding step $t$. Here, $\pi_\theta$ represents the active autoregressive decoder policy parameterized by LoRA weights $\theta$, $\pi_{\text{old}}$ is the policy snapshot used to generate the candidate rollouts, and $\pi_{\text{ref}}$ is the frozen Stage~1 SFT model serving as an anchor to prevent catastrophic language drift ($\beta = 0.0$ in our baseline configuration given SFT initialization). Each candidate hypothesis $y^{(g)} = (y_1^{(g)}, \dots, y_{|y^{(g)}|}^{(g)})$ consists of tokens generated autoregressively conditioned on past tokens $y_{<t}^{(g)}$ and acoustic representations $x$. The clipping hyperparameter $\epsilon = 0.2$ bounds the gradient updates to maintain training stability.
+where $r_t^{(g)}(\theta) = \frac{\pi_\theta(y_t^{(g)} \mid y_{<t}^{(g)}, x)}{\pi_{\text{old}}(y_t^{(g)} \mid y_{<t}^{(g)}, x)}$ denotes the per-token importance sampling ratio at decoding step $t$. Here, $\pi_\theta$ represents the active autoregressive decoder policy parameterized by LoRA weights $\theta$, and $\pi_{\text{old}}$ is the policy snapshot used to generate candidate rollouts. Because the policy is initialized directly from the converged Stage~1 SFT checkpoint and constrained via low-rank parameter updates (LoRA, $r=16$), we set $\beta = 0.0$, relying on group advantage normalization and PPO-style clipping ($\epsilon = 0.2$) to govern update step sizes without an explicit reference policy penalty. Each candidate hypothesis $y^{(g)} = (y_1^{(g)}, \dots, y_{|y^{(g)}|}^{(g)})$ consists of tokens generated autoregressively conditioned on past tokens $y_{<t}^{(g)}$ and acoustic representations $x$. The clipping hyperparameter $\epsilon = 0.2$ bounds the gradient updates to maintain training stability.
 
 \paragraph{Reward formulation.}
 Our joint script-aware reward combines sequence accuracy with orthographic fidelity:
@@ -223,7 +223,7 @@ with $\lambda_{\text{scr}} = 0.5$. Note that setting $\lambda_{\text{scr}} = 0.0
 \begin{table}[t]
 \centering
 \small
-\caption{Performance on the Frozen Real Test Split (10,214 utterances, 11.90\,h). All metrics in percentage (\%).}
+\caption{Performance on the Frozen Real Test Split (10,214 utterances, 12.80\,h). All metrics in percentage (\%).}
 \label{tab:main_results}
 \begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccccc@{}}
 \toprule
@@ -266,8 +266,8 @@ We conducted an extensive ablation on the development split (2,830 utterances) c
 \end{tabular*}
 \end{table}
 
-As shown in \cref{tab:ablation}, adding an auxiliary token-level script gate (\sys{2}) slightly degrades performance relative to standard SFT (\sys{1}), increasing MER from $19.82\%$ to $20.04\%$ and $\SCRen$ from $6.46\%$ to $7.41\%$. Error inspection reveals that greedy logit biasing forces premature script assignment at loanword prefixes, penalizing valid Devanagari assimilations. 
-In contrast, sequence-level GRPO (\sys{4}) directly optimizes candidate probability mass without constraining autoregressive exploration, achieving the lowest MER ($19.80\%$), lowest SPER ($32.18\%$), and lowest $\SCRen$ ($6.36\%$).
+As shown in \cref{tab:ablation}, adding an auxiliary token-level script gate (\sys{2}) degrades performance relative to standard SFT (\sys{1}), increasing MER from $18.92\%$ to $19.14\%$ and $\SCRen$ from $5.35\%$ to $5.75\%$. Error inspection reveals that greedy logit biasing forces premature script assignment at loanword prefixes, penalizing valid Devanagari assimilations. 
+In contrast, sequence-level GRPO (\sys{4}) directly optimizes candidate probability mass without constraining autoregressive exploration, achieving the lowest MER ($18.89\%$), lowest SPER ($25.53\%$), and lowest $\SCRen$ ($5.24\%$) on the development split.
 
 \subsection{Monolingual Retention}
 A common drawback of code-switched adaptation is catastrophic forgetting of monolingual capabilities. We benchmarked \sys{0} and \sys{4} on two standardized external corpora:
@@ -301,7 +301,7 @@ Rather than degrading, \sys{4} improves MER from $20.80\%$ to $18.42\%$ ($\Delta
 Detailed inspection of transcriptions on the frozen test split illustrates how script-aware GRPO resolves boundary confusion:
 \begin{itemize}
   \item \textbf{Suppression of spurious transliteration:} In baseline model \sys{0}, common English words such as ``someone'' and ``brands'' are frequently transcribed into phonetic Devanagari characters or split into mixed-script fragments (e.g., generating Devanagari roots with appended Latin plural suffixes). Under \sys{4}, the sequence-level reward penalizes cross-script character boundaries, restoring continuous English orthography.
-  \item \textbf{Stability at language transitions:} Transition regions between native Nepali matrix verbs and embedded English noun phrases regularly induce insertion hallucinations in unadapted models. Synthetic SFT provides strong acoustic anchoring for code-switched prosody, while GRPO advantage normalization explicitly discounts hypotheses exhibiting boundary hesitation.
+  \item \textbf{Stability at language transitions:} Transition regions between native Nepali matrix verbs and embedded English noun phrases regularly induce insertion hallucinations in unadapted models. Synthetic SFT provides strong acoustic anchoring for code-switched prosody, while GRPO optimizes group-level sequence preferences, reducing boundary switch-point errors.
 \end{itemize}
 
 \section{Limitations}
@@ -314,13 +314,20 @@ While synthetic SFT combined with GRPO produces statistically reliable gains, fo
 \end{enumerate}
 
 \section{Conclusion}
-We have presented an empirical study demonstrating that supervised fine-tuning on purely synthetic code-switched audio effectively transfers to spontaneous human conversational speech. Sequence-level reinforcement learning using Script-Aware GRPO outperforms token-level inference gating, significantly reducing switch-point errors and English script confusion without degrading monolingual capabilities.
+We have presented an empirical study demonstrating that supervised fine-tuning on purely synthetic code-switched audio effectively transfers to spontaneous human conversational speech. Sequence-level reinforcement learning using Script-Aware GRPO outperforms token-level inference gating, significantly reducing switch-point errors and English script confusion without degrading English lexical recognition accuracy (WER preserved at 3.38\% vs.\ 3.33\%), while improving native Nepali MER by 2.38\pp{}.
 
 Code and configurations are open-sourced at \url{https://github.com/Firoj-Wise/nepali-english-codeswitch-asr}. The complete conversational benchmark (13,044 utterances, 16.35\,h) is available on the Hugging Face Hub at \url{https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts}.
 
 \newpage
 
 \bibliographystyle{unsrt}
+\footnotesize
+\let\oldbibliography\thebibliography
+\renewcommand{\thebibliography}[1]{%
+  \oldbibliography{#1}%
+  \setlength{\itemsep}{2pt plus 0.5pt}%
+  \setlength{\parskip}{0pt}%
+}
 \bibliography{references}
 
 \end{document}
