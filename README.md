@@ -203,7 +203,7 @@ python scripts/train_grpo.py \
 The evaluation benchmark audio and transcriptions are available on the Hugging Face Hub:
 
 - **Repository**: [`SamaFiroz/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts)
-- **Splits**: `dev` (2,830 rows, 3.55 hours) and `test` (10,214 rows, 12.80 hours).
+- **Splits**: `dev` (2,830 rows, 3.55 hours) and `test` (10,214 rows, 11.90 hours; 15.45 hours total).
 - **Audio format**: 16 kHz mono WAV / FLAC, normalized duration.
 - **Audit documentation**: `data/audit/convention_violations.jsonl` catalogs flagged acoustic repetition segments.
 
@@ -216,9 +216,9 @@ If you use this benchmark or codebase in your research, please cite:
 ```bibtex
 @misc{paudel2026csrl,
   author = {Paudel, Firoj},
-  title = {Reducing Script Confusion and Switch-Point Errors in Nepali-English Code-Switched ASR via Synthetic SFT and Reinforcement Learning},
+  title = {Synthetic-to-Real Adaptation for Nepali-English Code-Switched ASR: A Spontaneous Podcast Benchmark and an Analysis of GRPO in Encoder-Decoder Models},
   year = {2026},
-  publisher = {GitHub},
+  publisher = {arXiv},
   howpublished = {\url{https://github.com/Firoj-Wise/nepali-english-codeswitch-asr}}
 }
 ```
