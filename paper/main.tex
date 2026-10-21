@@ -3,9 +3,10 @@
 % ---------- Encoding & typography (XeLaTeX) ----------
 \usepackage{fontspec}
 \setmainfont{Liberation Serif}
-\newfontfamily\devfont{Noto Sans Devanagari}[Script=Devanagari]
+\newfontfamily\devfont{Noto Serif Devanagari}[Script=Devanagari,Scale=0.90]
 \newcommand{\dev}[1]{{\devfont #1}}
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{tabularx}
 
 % ---------- Layout & margins ----------
 \usepackage[margin=1.5cm,top=1.5cm,bottom=1.5cm]{geometry}
@@ -224,7 +225,7 @@ A common drawback of code-switched adaptation is catastrophic forgetting of mono
 
 \begin{table}[t]
 \centering
-\footnotesize
+\small
 \setlength{\tabcolsep}{2.5pt}
 \caption{Monolingual retention evaluation on external benchmarks. All metrics in percentage (\%).}
 \label{tab:monolingual}
@@ -292,8 +293,8 @@ The Nepali--English conversational podcast benchmark was constructed from public
 
 \begin{table}[h!]
 \centering
-\footnotesize
-\setlength{\tabcolsep}{3.5pt}
+\small
+\setlength{\tabcolsep}{2pt}
 \caption{Comprehensive breakdown of the curated Nepali--English code-switched conversational benchmark across development, evaluation, and quarantined subsets.}
 \label{tab:corpus_breakdown}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccccc@{}}
@@ -334,6 +335,7 @@ All experiments build upon \texttt{indic-transcribe-flex}, a 1.2-billion paramet
 \begin{table}[h!]
 \centering
 \small
+\renewcommand{\arraystretch}{0.93}
 \caption{Training configurations and hyperparameters for Stage~1 Supervised Fine-Tuning (SFT) and Stage~2 Group Relative Policy Optimization (GRPO).}
 \label{tab:hyperparameters}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcc@{}}
@@ -372,85 +374,56 @@ Training Wall-Clock Time          & 42 minutes & 38 minutes \\
 \paragraph{Initialization and parameter freezing.}
 During both Stage~1 and Stage~2 adaptation, all acoustic encoder parameters remain completely frozen. LoRA adapters ($r=16, \alpha_{\text{lora}}=32$) are inserted exclusively into the self-attention and cross-attention query ($W_q$) and value ($W_v$) projections within the Transformer decoder, updating exactly 3,735,552 parameters (0.31\% of the 1.2B base parameters). Stage~2 GRPO initializes weights directly from the converged Stage~1 checkpoint at step 1,000.
 
-\newpage
+\clearpage
 
 \section{Qualitative Analysis and Transcription Diffs}
 \label{sec:app_qualitative}
 
 To illustrate the qualitative impact of each adaptation stage, \cref{tab:qualitative_examples} presents representative code-mixed utterances from the frozen real test split. Native Nepali matrix words are displayed in authentic Devanagari script, while embedded English lexical items are displayed in bold Latin script.
 
-\begin{table}[h!]
+\begin{table*}[t]
 \centering
 \small
-\setlength{\tabcolsep}{3pt}
-\caption{Qualitative comparison of code-mixed transcriptions across adaptation stages on representative utterances from the Frozen Real Test Split. Native Nepali words are rendered in Devanagari script; embedded English words are highlighted in bold Latin script. Colloquial English glosses provide context.}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.18}
+\caption{Qualitative comparison of code-mixed transcriptions across adaptation stages on representative utterances from the Frozen Real Test Split. Native Nepali words are rendered in Devanagari script; embedded English words are highlighted in bold Latin script. All transcriptions are extracted verbatim from model evaluation rollouts.}
 \label{tab:qualitative_examples}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.14\textwidth}p{0.20\textwidth}p{0.20\textwidth}p{0.20\textwidth}p{0.20\textwidth}@{}}
+\begin{tabularx}{\textwidth}{@{}p{3.8cm} p{2.0cm} X@{}}
 \toprule
-\textbf{Utterance ID} & \textbf{Ground Truth Reference} & \textbf{\sys{0} Base Foundation} & \textbf{\sys{1} Synthetic SFT} & \textbf{\sys{4} Joint GRPO} \\
+\textbf{Utterance ID \& Context} & \textbf{System} & \textbf{Transcription} \\
 \midrule
-{\scriptsize\texttt{-IE5q6\_CMnU\_0189}} &
-\dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{को} \textbf{model} \dev{भन्नुभयो ...} \newline
-\footnotesize Gloss: ``As you previously mentioned the Tata model...'' &
-\dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{-को} \textbf{model} \dev{भन्नुभयो ...} \newline
-\footnotesize Note: English brand hyphenated with Devanagari particle. &
-\dev{हजुरले नै जुन हजुरले अघि टाटाको} \textbf{model} \dev{भन्नुभयो ...} \newline
-\footnotesize Note: English brand compounded into Devanagari \dev{टाटाको}. &
-\dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{को} \textbf{model} \dev{भन्नुभयो ...} \newline
-\footnotesize Note: Correctly separates Latin brand from Devanagari \dev{को}. \\
+\texttt{-IE5q6\_CMnU\_0189} & Ground Truth & \dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{को} \textbf{model} \dev{भन्नुभयो जस्तै हाम्रो पनि यस्तो हुन्छ कि त्यो} \textbf{company} \dev{जुन चाहिँ त्यहाँ} \textbf{franchise} \dev{गर्ने हुन्छ नि त्यसमा चाहिँ} \textbf{major stake} \dev{चाहिँ} \textbf{company} \dev{कै हुन्छ के} \\
+\textit{``As you previously mentioned the Tata model...''} & \sys{0} Base & \dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{-को} \textbf{model} \dev{भन्नुभयो \dots} \textbf{major stake} \dev{चाहिँ} \textbf{company} \dev{-कै हुन्छ क्या} \\
+& \sys{1} SFT & \dev{हजुरले नै जुन हजुरले अघि टाटाको} \textbf{model} \dev{भन्नुभयो \dots} \textbf{major stake} \dev{चाहिँ} \textbf{company} \dev{नै हुन्छ क्या} \\
+& \sys{4} GRPO & \dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{को} \textbf{model} \dev{भन्नुभयो \dots} \textbf{major stake} \dev{चाहिँ} \textbf{company} \dev{को हुन्छ क्या} \\
 \midrule
-{\scriptsize\texttt{-IE5q6\_CMnU\_0244}} &
-\dev{हैन} \textbf{they have been running} \dev{...} \textbf{coffee shop business} \dev{भने ...} \newline
-\footnotesize Gloss: ``They have been running a business, now if they want to enter a coffee shop business...'' &
-\dev{होइन दे वर} \textbf{running} \dev{...} \textbf{coffee shop business} \dev{भने ...} \newline
-\footnotesize Note: English ``they were'' transliterated into Devanagari \dev{दे वर}. &
-\dev{होइन दे} \textbf{were running} \dev{...} \textbf{coffee shop business} \dev{भने ...} \newline
-\footnotesize Note: Recovers \textbf{were} but retains Devanagari \dev{दे}. &
-\dev{होइन} \textbf{they were running} \dev{...} \textbf{coffee shop business} \dev{भने ...} \newline
-\footnotesize Note: Restores correct Latin orthography \textbf{they were running}. \\
+\texttt{-IE5q6\_CMnU\_0244} & Ground Truth & \dev{हैन} \textbf{they have been running} \dev{अह} \textbf{f and b business for last ten fifteen years} \dev{हैन} \textbf{now they want to go into a coffee shop business} \dev{भने} \textbf{i would want to work with them} \\
+\textit{``They were running an F\&B business for 10--15 years...''} & \sys{0} Base & \dev{होइन दे वर} \textbf{running f b business for last 10-15 years} \dev{होइन नाउ दे} \textbf{want to go into a coffee shop business} \dev{भने \dots} \\
+& \sys{1} SFT & \dev{होइन दे} \textbf{were running f b business for last ten fifteen years} \dev{होइन नाउ दे} \textbf{want to go into a coffee shop business} \dev{भने \dots} \\
+& \sys{4} GRPO & \dev{होइन} \textbf{they were running f b business for last ten fifteen years} \dev{होइन नाउ दे} \textbf{want to go into a coffee shop business} \dev{भने \dots} \\
 \midrule
-{\scriptsize\texttt{-IE5q6\_CMnU\_0032}} &
-\dev{अरु} \textbf{brand} \dev{हरू पनि ...} \textbf{coffee} \dev{गरिराख्नु भाको ... एउटा मात्र} \textbf{outlet} \dev{... दश-बाह्र वटा} \textbf{outlet} \dev{भइसक्यो} \newline
-\footnotesize Gloss: ``Other brands in Nepal that do coffee, having only one outlet is rare, everyone has five to twelve outlets already.'' &
-\dev{अरू} \textbf{brand} \dev{-हरू ...} \textbf{coffee} \dev{...} 1 \dev{मात्र} \textbf{outlet} \dev{...} 10-12 \dev{वटा} \textbf{outlet} \newline
-\footnotesize Note: Hyphenated particles and numeric digits. &
-\dev{अरू} \textbf{brands} \dev{पनि ...} \textbf{coffee} \dev{... एउटा मात्र} \textbf{outlet} \dev{... दस बाह्रवटा} \textbf{outlet} \newline
-\footnotesize Note: Grounds all three English nouns (\textbf{brand}, \textbf{coffee}, \textbf{outlet}). &
-\dev{अरू} \textbf{brands} \dev{पनि ...} \textbf{coffee} \dev{... एउटा मात्र} \textbf{outlet} \dev{... दस बाह्रवटा} \textbf{outlet} \newline
-\footnotesize Note: Identical to \sys{1} (stable retention). \\
+\texttt{-IE5q6\_CMnU\_0032} & Ground Truth & \dev{अरु} \textbf{brand} \dev{हरू पनि जति जनि नेपालमा छन् अरु} \textbf{brand} \dev{हरू} \textbf{coffee} \dev{गरिराख्नु भाको उहाँहरूको पनि एउटा मात्र} \textbf{outlet} \dev{भनेको एकदम कम छ सबैको पाँच-छ वटा दश-बाह्र वटा} \textbf{outlet} \dev{भइसक्यो} \\
+\textit{``Other brands doing coffee in Nepal having only one outlet is rare...''} & \sys{0} Base & \dev{अरू} \textbf{brand} \dev{-हरू पनि \dots} \textbf{coffee} \dev{\dots 1 मात्र} \textbf{outlet} \dev{भनेको एकदम कम छ सबैको 5-6 वटा 10-12 वटा} \textbf{outlet} \dev{भइसक्यो कि} \\
+& \sys{1} SFT & \dev{अरू} \textbf{brands} \dev{पनि छन् अरू} \textbf{brands coffee} \dev{गरिराख्नु भएको छ उहाँहरूको पनि एउटा मात्र} \textbf{outlet} \dev{भनेको एकदमै कम छ सबैको पाँच छवटा दस बाह्रवटा} \textbf{outlet} \dev{भइसक्यो} \\
+& \sys{4} GRPO & \dev{अरू} \textbf{brands} \dev{पनि छन् अरू} \textbf{brands coffee} \dev{गरिराख्नु भएको छ उहाँहरूको पनि एउटा मात्र} \textbf{outlet} \dev{भनेको एकदमै कम छ सबैको पाँच छवटा दस बाह्रवटा} \textbf{outlet} \dev{भइसक्यो} \\
 \midrule
-{\scriptsize\texttt{-IE5q6\_CMnU\_0107}} &
-\dev{अब आउँछ} \textbf{opex operating expenditure} \newline
-\footnotesize Gloss: ``Now comes OPEX (operating expenditure).'' &
-\dev{अब आउँछ अपरेसनल} \textbf{expenditure} \newline
-\footnotesize Note: Devanagari transliteration of operational acronym. &
-\dev{अब आउँछ} \textbf{open expenditure} \newline
-\footnotesize Note: Lexical substitution at switch point. &
-\dev{अब आउँछ} \textbf{opens operating expenditure} \newline
-\footnotesize Note: Captures English technical phrase \textbf{operating expenditure}. \\
+\texttt{-IE5q6\_CMnU\_0107} & Ground Truth & \dev{अब आउँछ} \textbf{opex operating expenditure} \\
+\textit{``Now comes OPEX (operating expenditure)...''} & \sys{0} Base & \dev{अब आउँछ} \textbf{opex operating expenditure} \\
+& \sys{1} SFT & \dev{अब आउँछ} \textbf{open expenditure} \\
+& \sys{4} GRPO & \dev{अब आउँछ} \textbf{opens operating expenditure} \\
 \midrule
-{\scriptsize\texttt{-IE5q6\_CMnU\_0143}} &
-\dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलागे भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के} \newline
-\footnotesize Gloss: ``If the owner themselves are not involved, many things get lost out.'' &
-\dev{आफ्नै ओनर त्यहाँ नलागे ... लुज आउट हुन्छ के} \newline
-\footnotesize Note: English words transliterated into Devanagari (\dev{ओनर}, \dev{लुज आउट}). &
-\dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलाग्यो भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के} \newline
-\footnotesize Note: Correctly anchors Latin nouns and phrasal verbs. &
-\dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलाग्यो भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के} \newline
-\footnotesize Note: Identical to \sys{1} (stable retention). \\
+\texttt{-IE5q6\_CMnU\_0143} & Ground Truth & \dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलागे भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के एकदम सानो} \dots \\
+\textit{``If the owners themselves are not involved, many things get lost out...''} & \sys{0} Base & \dev{आफ्नै ओनर त्यहाँ नलागे \dots लुज आउट हुन्छ के} \\
+& \sys{1} SFT & \dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलाग्यो भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के \dots} \\
+& \sys{4} GRPO & \dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलाग्यो भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के \dots} \\
 \midrule
-{\scriptsize\texttt{Az5dcGRagyU\_0058}} &
-\dev{अगाडि बढाउने प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढ्छ} \newline
-\footnotesize Gloss: ``Please make efforts to move forward, not backward, is what I want to say.'' &
-\dev{अगाडि बढाउने प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु} \newline
-\footnotesize Note: Devanagari transcription. &
-\dev{अगाडि बढाउन प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढि} \newline
-\footnotesize Note: Accurate Devanagari transcription. &
-\dev{अगाडि बढाउन प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढि} \newline
-\footnotesize Note: Demonstrates zero spurious Latin insertion on native speech. \\
+\texttt{Az5dcGRagyU\_0058} & Ground Truth & \dev{अगाडि बढाउने प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढ्छ} \dots \\
+\textit{``Please make efforts to move forward, not backward...''} & \sys{0} Base & \dev{अगाडि बढाउने प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु} \\
+& \sys{1} SFT & \dev{अगाडि बढाउन प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढि} \dots \\
+& \sys{4} GRPO & \dev{अगाडि बढाउन प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढि} \dots \\
 \bottomrule
-\end{tabular*}
-\end{table}
+\end{tabularx}
+\end{table*}
 
 \paragraph{Analysis of error types.}
 The examples in \cref{tab:qualitative_examples} demonstrate three distinct operational regimes:
@@ -460,16 +433,41 @@ The examples in \cref{tab:qualitative_examples} demonstrate three distinct opera
   \item \textbf{Monolingual orthographic stability:} In pure Nepali segments such as \texttt{Az5dcGRagyU\_0058}, both \sys{1} and \sys{4} decode entirely in Devanagari script with zero spurious Latin characters, demonstrating that code-switched adaptation does not degrade native script stability.
 \end{enumerate}
 
+\clearpage
+
 \section{Datasheet, Ethics, and Reproducibility}
 \label{sec:app_datasheet}
 
-Following recommended documentation standards for speech corpora, this section provides the datasheet for the curated Nepali--English podcast benchmark.
+Following recommended documentation standards for speech corpora, this section provides the comprehensive datasheet for the curated Nepali--English podcast benchmark.
 
-\paragraph{Motivation.}
-The corpus was curated to establish an audited, reproducible benchmark for spontaneous South Asian code-switched speech recognition, addressing the absence of open-access conversational datasets for low-resource language pairs with disparate orthographic systems.
+\paragraph{Motivation and intended use.}
+The corpus was curated to establish an audited, reproducible benchmark for spontaneous South Asian code-switched speech recognition, addressing the absence of open-access conversational datasets for low-resource language pairs with disparate orthographic systems. The primary intended use is evaluating ASR models on spontaneous, unscripted bilingual speech containing high-frequency intra-sentential language alternation.
 
 \paragraph{Composition and coverage.}
-The verified benchmark contains 13,044 audio clips totaling 15.45 hours across 28 podcast episodes. All speakers are fluent bilingual Nepali speakers residing in urban Nepal. Conversations cover modern socio-technical discourse containing 183,013 spoken words (67.3\% native Nepali in Devanagari script, 32.7\% English in Latin script) and 29,033 inter-sentential and intra-sentential language switch points (averaging 2.23 switch points per utterance).
+The verified benchmark contains 13,044 audio clips totaling 15.45 hours across 28 podcast episodes. All speakers are fluent bilingual Nepali speakers residing in urban Nepal. Conversations cover modern socio-technical discourse containing 183,013 spoken words (67.3\% native Nepali in Devanagari script, 32.7\% English in Latin script) and 29,033 inter-sentential and intra-sentential language switch points (averaging 2.23 switch points per utterance). \Cref{tab:datasheet_breakdown} summarizes the distribution across thematic domains.
+
+\begin{table}[h!]
+\centering
+\small
+\setlength{\tabcolsep}{3.5pt}
+\caption{Thematic domain distribution and linguistic composition across the 28 podcast episodes in the benchmark.}
+\label{tab:datasheet_breakdown}
+\begin{tabularx}{\textwidth}{@{}p{4.2cm} ccccc X@{}}
+\toprule
+\textbf{Thematic Domain} & \textbf{Episodes} & \textbf{Speakers} & \textbf{Duration (h)} & \textbf{Nepali Words} & \textbf{English Words} & \textbf{Representative Embedded Terms} \\
+\midrule
+Entrepreneurship \& Business & 9  & 24 & 5.12 & 41,208 (65.8\%) & 21,428 (34.2\%) & \textbf{startup, equity, revenue, brand, outlet} \\
+Technology \& AI             & 7  & 18 & 3.86 & 30,119 (64.1\%) & 16,870 (35.9\%) & \textbf{software, model, feature, backend, system} \\
+Higher Education \& Career   & 6  & 15 & 3.31 & 27,243 (68.7\%) & 12,411 (31.3\%) & \textbf{university, semester, career, visa, degree} \\
+Public Health \& Society     & 6  & 15 & 3.16 & 24,604 (71.9\%) & 9,130 (28.1\%)  & \textbf{hospital, mental health, community, case} \\
+\midrule
+\textbf{Total Benchmark}     & \textbf{28} & \textbf{72} & \textbf{15.45} & \textbf{123,174} (67.3\%) & \textbf{59,839} (32.7\%) & \textbf{29,033 switch points} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Audio preprocessing and quality control.}
+All raw audio tracks were standardized to single-channel (mono) 16\,kHz 16-bit linear PCM format and peak-normalized to $-1$\,dBFS. Voice activity boundaries were computed by trimming silence intervals exceeding 0.8\,s, producing utterance units between 1.0\,s and 15.0\,s. Studio setups include dynamic and condenser broadcast microphones, capturing natural acoustic nuances such as conversational overlaps, laughter, and room acoustics without synthetic degradation.
 
 \paragraph{Collection and licensing.}
 Audio was acquired from publicly broadcast YouTube video podcasts under commentary and educational categories. The benchmark release contains segment timestamps, speaker anonymization labels, verified transcriptions, YouTube video identifiers, and an automated download and alignment script that downloads audio directly from YouTube to reconstruct the exact 16\,kHz PCM clips locally. This mechanism ensures that researchers can reproduce the identical dataset without redistributing raw third-party media files. The metadata and transcriptions are released under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC~BY-NC-SA~4.0).
