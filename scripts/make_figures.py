@@ -91,7 +91,7 @@ SYS_S0 = ("S0  Zero-shot base", C_S0, "////")
 SYS_S1 = ("S1  Synthetic SFT", C_S1, "....")
 SYS_S2 = ("S2  SFT + gate", C_GATE, "xxxx")
 SYS_S5 = ("S5  GRPO + gate", C_GATE, "----")
-SYS_S4 = ("S4  Script-aware GRPO (ours)", C_OURS, "")
+SYS_S4 = ("S4  GRPO (joint reward)", C_OURS, "")
 
 BADGE_GOOD = ("#047857", "#E3F4EC")
 BADGE_NEUTRAL = ("#52525B", "#F1F1F3")

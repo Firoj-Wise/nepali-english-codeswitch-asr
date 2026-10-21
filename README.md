@@ -31,7 +31,7 @@ Evaluations conducted on the frozen real test split (`data/splits/real_test.json
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **S0 Base** (Zero-Shot) | `S0-20261021-real-test-clean` | test | 23.40 | 35.65 | 20.65 | 35.89 | 6.70 | 4.09 |
 | **S1 SFT** (Synthetic) | `S1-20261021-real-test-clean` | test | 21.52 | 32.16 | 19.11 | 28.77 | 6.45 | 3.85 |
-| **S4 GRPO** (Script-Aware RL) | `S4-20261021-real-test-clean` | test | **21.49** | **32.13** | **19.08** | **28.70** | **6.36** | **3.83** |
+| **S4 GRPO** (Joint Reward) | `S4-20261021-real-test-clean` | test | **21.49** | **32.13** | **19.08** | **28.70** | **6.36** | **3.83** |
 
 *Definitions*: MER (Mixed Error Rate: Word Error Rate on Latin script, Character Error Rate on Devanagari script); SPER (Switch-Point Error Rate); SCR (Script Confusion Rate).
 
@@ -45,13 +45,13 @@ Evaluated with 1,000 resamples ($B=1{,}000$) on the frozen real test split:
 
 | Comparison | Metric | Utterance Bootstrap (95% CI) | Clustered Episode Bootstrap (95% CI) | p-value | Statistically Significant |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **S1 vs S0** | MER | -1.88% [-2.35%, -1.41%] | -1.86% [-2.32%, -1.29%] | < 0.001 | Yes |
-| **S1 vs S0** | SPER | -7.12% [-7.89%, -6.39%] | -7.11% [-8.16%, -6.20%] | < 0.001 | Yes |
-| **S4 vs S0** | MER | -1.90% [-2.37%, -1.42%] | -1.89% [-2.34%, -1.37%] | < 0.001 | Yes |
-| **S4 vs S0** | SPER | -7.19% [-7.97%, -6.46%] | -7.22% [-8.24%, -6.25%] | < 0.001 | Yes |
+| **S1 vs S0** | MER | -1.88% [-2.35%, -1.41%] | -1.86% [-2.32%, -1.29%] | $\le 0.001$ | Yes |
+| **S1 vs S0** | SPER | -7.12% [-7.89%, -6.39%] | -7.11% [-8.16%, -6.20%] | $\le 0.001$ | Yes |
+| **S4 vs S0** | MER | -1.90% [-2.37%, -1.42%] | -1.89% [-2.34%, -1.37%] | $\le 0.001$ | Yes |
+| **S4 vs S0** | SPER | -7.19% [-7.97%, -6.46%] | -7.22% [-8.24%, -6.25%] | $\le 0.001$ | Yes |
 | **S4 vs S0** | $\SCRen$ | -0.35% [-0.65%, -0.04%] | -0.37% [-0.80%, +0.07%] | < 0.05 (utt) | Yes |
 | **S4 vs S1** | SPER | -0.07% [-0.12%, -0.03%] | -0.07% [-0.15%, -0.01%] | 0.022 | Yes |
-| **S4 vs S1** | $\SCRen$ | -0.09% [-0.13%, -0.06%] | -0.09% [-0.11%, -0.06%] | < 0.001 | Yes |
+| **S4 vs S1** | $\SCRen$ | -0.09% [-0.13%, -0.06%] | -0.09% [-0.11%, -0.06%] | $\le 0.001$ | Yes |
 | **S4 vs S1** | MER | -0.03% [-0.05%, -0.01%] | -0.03% [-0.05%, -0.01%] | 0.008 | Yes |
 
 <p align="center">
