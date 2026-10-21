@@ -1,13 +1,14 @@
 \documentclass[10pt,twocolumn,a4paper]{article}
 
-% ---------- Encoding & typography ----------
-\usepackage[T1]{fontenc}
-\usepackage{times}
+% ---------- Encoding & typography (XeLaTeX) ----------
+\usepackage{fontspec}
+\setmainfont{Liberation Serif}
+\newfontfamily\devfont{Noto Sans Devanagari}[Script=Devanagari]
+\newcommand{\dev}[1]{{\devfont #1}}
 \usepackage{amsmath,amssymb,amsfonts}
 
 % ---------- Layout & margins ----------
 \usepackage[margin=1.5cm,top=1.5cm,bottom=1.5cm]{geometry}
-\usepackage{microtype}
 \usepackage{titlesec}
 \titlespacing*{\section}{0pt}{4pt plus 1pt minus 1pt}{2pt plus 1pt minus 1pt}
 \titlespacing*{\subsection}{0pt}{3pt plus 1pt minus 1pt}{1.2pt plus 1pt minus 1pt}
@@ -26,7 +27,6 @@
 \renewcommand{\dblfloatpagefraction}{0.85}
 
 % ---------- Content packages ----------
-\usepackage{amsmath}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{xcolor}
@@ -48,7 +48,7 @@
 \newcommand{\SCRall}{\text{SCR}_{\text{all}}}
 \DeclareMathOperator{\clip}{clip}
 
-\title{\textbf{Synthetic-to-Real Adaptation for Nepali--English Code-Switched ASR:\\A Spontaneous Podcast Benchmark and an Analysis of GRPO in Encoder--Decoder Models}}
+\title{\textbf{Synthetic-to-Real Code-Switched ASR:\\A Spontaneous Nepali--English Podcast Benchmark}}
 
 \author{%
   \textbf{Firoj Paudel}\\[2pt]
@@ -254,7 +254,7 @@ Inspection of transcriptions on the frozen test split highlights the specific na
 
 \paragraph{Acoustic grounding from SFT.} Baseline model \sys{0} frequently transliterates embedded English words into phonetic Devanagari characters or fragments them across script boundaries (e.g., producing hybrid roots with Latin plural suffixes). Synthetic SFT provides strong acoustic anchoring for code-switched prosodic contours, resolving the vast majority of cross-script boundary errors.
 
-\paragraph{Sequence-level boundary regularization in GRPO.} Of the 10,214 test utterances, exactly 173 ($1.69\%$) differ between \sys{1} and \sys{4}. In these cases, GRPO selectively rectifies switch-point script assignments. For instance, in utterance \texttt{-IE5q6\_CMnU\_0189}, \sys{1} transcribes the English brand in Devanagari script compounded with the postposition (\emph{tatako model}), whereas \sys{4} cleanly separates the Latin brand from the Nepali postposition (\emph{tata ko model}). Similarly, in \texttt{-IE5q6\_CMnU\_0244}, \sys{1} outputs a phonetic Devanagari substitution (\emph{de were running} using Devanagari \emph{de}), which \sys{4} restores to proper Latin orthography (\emph{they were running}). Because \sys{3} and \sys{4} produce identical outputs, these localized corrections arise from sequence-level advantage normalization over candidate rollouts rather than active guidance from the script reward term.
+\paragraph{Sequence-level boundary regularization in GRPO.} Of the 10,214 test utterances, exactly 173 ($1.69\%$) differ between \sys{1} and \sys{4}. In these cases, GRPO selectively rectifies switch-point script assignments. For instance, in utterance \texttt{-IE5q6\_CMnU\_0189}, \sys{1} transcribes the English brand in Devanagari script compounded with the postposition (\dev{टाटाको} \textbf{model}), whereas \sys{4} cleanly separates the Latin brand from the Nepali postposition (\textbf{tata} \dev{को} \textbf{model}). Similarly, in \texttt{-IE5q6\_CMnU\_0244}, \sys{1} outputs a phonetic Devanagari substitution (\dev{दे} \textbf{were running}), which \sys{4} restores to proper Latin orthography (\textbf{they were running}). Because \sys{3} and \sys{4} produce identical outputs, these localized corrections arise from sequence-level advantage normalization over candidate rollouts rather than active guidance from the script reward term.
 
 \section{Limitations}
 While synthetic SFT combined with GRPO produces statistically reliable gains, several limitations remain:
@@ -377,77 +377,77 @@ During both Stage~1 and Stage~2 adaptation, all acoustic encoder parameters rema
 \section{Qualitative Analysis and Transcription Diffs}
 \label{sec:app_qualitative}
 
-To illustrate the qualitative impact of each adaptation stage, \cref{tab:qualitative_examples} presents representative utterances from the frozen real test split. For international readability and typographic stability, native Nepali Devanagari words are displayed in phonetic romanization in italics, and English words are displayed in bold font.
+To illustrate the qualitative impact of each adaptation stage, \cref{tab:qualitative_examples} presents representative code-mixed utterances from the frozen real test split. Native Nepali matrix words are displayed in authentic Devanagari script, while embedded English lexical items are displayed in bold Latin script.
 
 \begin{table}[h!]
 \centering
 \small
 \setlength{\tabcolsep}{3pt}
-\caption{Qualitative comparison of transcriptions across adaptation stages on representative utterances from the Frozen Real Test Split. Native Nepali words are romanized in italics; English words are highlighted in bold. Translations provide colloquial English glosses.}
+\caption{Qualitative comparison of code-mixed transcriptions across adaptation stages on representative utterances from the Frozen Real Test Split. Native Nepali words are rendered in Devanagari script; embedded English words are highlighted in bold Latin script. Colloquial English glosses provide context.}
 \label{tab:qualitative_examples}
 \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.14\textwidth}p{0.20\textwidth}p{0.20\textwidth}p{0.20\textwidth}p{0.20\textwidth}@{}}
 \toprule
 \textbf{Utterance ID} & \textbf{Ground Truth Reference} & \textbf{\sys{0} Base Foundation} & \textbf{\sys{1} Synthetic SFT} & \textbf{\sys{4} Joint GRPO} \\
 \midrule
 {\scriptsize\texttt{-IE5q6\_CMnU\_0189}} &
-\emph{tata ko} \textbf{model} \emph{aayeko chha} \newline
-\footnotesize Gloss: ``Tata's model has arrived.'' &
-\emph{taataako} \textbf{model} \emph{aayeko chha} \newline
-\footnotesize Note: Vowel lengthening and postposition compounding. &
-\emph{tatako} \textbf{model} \emph{aayeko chha} \newline
-\footnotesize Note: English brand compounded with Nepali particle. &
-\emph{tata ko} \textbf{model} \emph{aayeko chha} \newline
-\footnotesize Note: Correctly separates brand and postposition. \\
+\dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{को} \textbf{model} \dev{भन्नुभयो ...} \newline
+\footnotesize Gloss: ``As you previously mentioned the Tata model...'' &
+\dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{-को} \textbf{model} \dev{भन्नुभयो ...} \newline
+\footnotesize Note: English brand hyphenated with Devanagari particle. &
+\dev{हजुरले नै जुन हजुरले अघि टाटाको} \textbf{model} \dev{भन्नुभयो ...} \newline
+\footnotesize Note: English brand compounded into Devanagari \dev{टाटाको}. &
+\dev{हजुरले नै जुन हजुरले अघि} \textbf{tata} \dev{को} \textbf{model} \dev{भन्नुभयो ...} \newline
+\footnotesize Note: Correctly separates Latin brand from Devanagari \dev{को}. \\
 \midrule
 {\scriptsize\texttt{-IE5q6\_CMnU\_0244}} &
-\emph{ani} \textbf{they were running} \emph{dherai chhitto} \newline
-\footnotesize Gloss: ``And they were running very fast.'' &
-\emph{ani de were running} \emph{dherai chhitto} \newline
-\footnotesize Note: Phonetic Devanagari \emph{de} substitution. &
-\emph{ani de were running} \emph{dherai chhitto} \newline
-\footnotesize Note: Preserves phonetic Devanagari substitution. &
-\emph{ani} \textbf{they were running} \emph{dherai chhitto} \newline
-\footnotesize Note: Restores correct Latin orthography. \\
+\dev{हैन} \textbf{they have been running} \dev{...} \textbf{coffee shop business} \dev{भने ...} \newline
+\footnotesize Gloss: ``They have been running a business, now if they want to enter a coffee shop business...'' &
+\dev{होइन दे वर} \textbf{running} \dev{...} \textbf{coffee shop business} \dev{भने ...} \newline
+\footnotesize Note: English ``they were'' transliterated into Devanagari \dev{दे वर}. &
+\dev{होइन दे} \textbf{were running} \dev{...} \textbf{coffee shop business} \dev{भने ...} \newline
+\footnotesize Note: Recovers \textbf{were} but retains Devanagari \dev{दे}. &
+\dev{होइन} \textbf{they were running} \dev{...} \textbf{coffee shop business} \dev{भने ...} \newline
+\footnotesize Note: Restores correct Latin orthography \textbf{they were running}. \\
 \midrule
-{\scriptsize\texttt{3U1Fw9\_xK01\_0042}} &
-\emph{yo} \textbf{software} \emph{ma dherai} \textbf{features} \emph{haru chhan} \newline
-\footnotesize Gloss: ``This software has many features.'' &
-\emph{yo saptbher ma dherai phichar haru chhan} \newline
-\footnotesize Note: Complete Devanagari transliteration. &
-\emph{yo} \textbf{software} \emph{ma dherai} \textbf{features} \emph{haru chhan} \newline
-\footnotesize Note: SFT resolves loanword orthography. &
-\emph{yo} \textbf{software} \emph{ma dherai} \textbf{features} \emph{haru chhan} \newline
-\footnotesize Note: Identical to \sys{1} (preserved). \\
+{\scriptsize\texttt{-IE5q6\_CMnU\_0032}} &
+\dev{अरु} \textbf{brand} \dev{हरू पनि ...} \textbf{coffee} \dev{गरिराख्नु भाको ... एउटा मात्र} \textbf{outlet} \dev{... दश-बाह्र वटा} \textbf{outlet} \dev{भइसक्यो} \newline
+\footnotesize Gloss: ``Other brands in Nepal that do coffee, having only one outlet is rare, everyone has five to twelve outlets already.'' &
+\dev{अरू} \textbf{brand} \dev{-हरू ...} \textbf{coffee} \dev{...} 1 \dev{मात्र} \textbf{outlet} \dev{...} 10-12 \dev{वटा} \textbf{outlet} \newline
+\footnotesize Note: Hyphenated particles and numeric digits. &
+\dev{अरू} \textbf{brands} \dev{पनि ...} \textbf{coffee} \dev{... एउटा मात्र} \textbf{outlet} \dev{... दस बाह्रवटा} \textbf{outlet} \newline
+\footnotesize Note: Grounds all three English nouns (\textbf{brand}, \textbf{coffee}, \textbf{outlet}). &
+\dev{अरू} \textbf{brands} \dev{पनि ...} \textbf{coffee} \dev{... एउटा मात्र} \textbf{outlet} \dev{... दस बाह्रवटा} \textbf{outlet} \newline
+\footnotesize Note: Identical to \sys{1} (stable retention). \\
 \midrule
-{\scriptsize\texttt{k8ZbM2\_wL10\_0115}} &
-\emph{hijo ko} \textbf{meeting} \emph{ma} \textbf{presentation} \emph{ramro thiyo} \newline
-\footnotesize Gloss: ``Yesterday's presentation in the meeting was good.'' &
-\emph{hijo ko miting ma prejentasan ramro thiyo} \newline
-\footnotesize Note: Both English nouns transcribed in Devanagari. &
-\emph{hijo ko} \textbf{meeting} \emph{ma} \textbf{presentation} \emph{ramro thiyo} \newline
-\footnotesize Note: SFT recovers English orthography. &
-\emph{hijo ko} \textbf{meeting} \emph{ma} \textbf{presentation} \emph{ramro thiyo} \newline
-\footnotesize Note: Identical to \sys{1} (preserved). \\
+{\scriptsize\texttt{-IE5q6\_CMnU\_0107}} &
+\dev{अब आउँछ} \textbf{opex operating expenditure} \newline
+\footnotesize Gloss: ``Now comes OPEX (operating expenditure).'' &
+\dev{अब आउँछ अपरेसनल} \textbf{expenditure} \newline
+\footnotesize Note: Devanagari transliteration of operational acronym. &
+\dev{अब आउँछ} \textbf{open expenditure} \newline
+\footnotesize Note: Lexical substitution at switch point. &
+\dev{अब आउँछ} \textbf{opens operating expenditure} \newline
+\footnotesize Note: Captures English technical phrase \textbf{operating expenditure}. \\
 \midrule
-{\scriptsize\texttt{p9QmK1\_vT04\_0312}} &
-\textbf{actually} \emph{malai testo lagdaina} \newline
-\footnotesize Gloss: ``Actually, I do not feel that way.'' &
-\emph{ekchuli malai testo lagdaina} \newline
-\footnotesize Note: Discourse marker transliterated to Devanagari. &
-\textbf{actually} \emph{malai testo lagdaina} \newline
-\footnotesize Note: Correctly outputs Latin discourse marker. &
-\textbf{actually} \emph{malai testo lagdaina} \newline
-\footnotesize Note: Identical to \sys{1} (preserved). \\
+{\scriptsize\texttt{-IE5q6\_CMnU\_0143}} &
+\dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलागे भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के} \newline
+\footnotesize Gloss: ``If the owner themselves are not involved, many things get lost out.'' &
+\dev{आफ्नै ओनर त्यहाँ नलागे ... लुज आउट हुन्छ के} \newline
+\footnotesize Note: English words transliterated into Devanagari (\dev{ओनर}, \dev{लुज आउट}). &
+\dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलाग्यो भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के} \newline
+\footnotesize Note: Correctly anchors Latin nouns and phrasal verbs. &
+\dev{आफ्नै} \textbf{owner} \dev{त्यहाँ नलाग्यो भने चाहिँ धेरै कुराहरू चाहिँ} \textbf{lose out} \dev{हुन्छ के} \newline
+\footnotesize Note: Identical to \sys{1} (stable retention). \\
 \midrule
-{\scriptsize\texttt{v2PnL8\_zR09\_0088}} &
-\emph{hamile} \textbf{machine learning algorithm use} \emph{gareko ho} \newline
-\footnotesize Gloss: ``We used a machine learning algorithm.'' &
-\emph{hamile masin larning algoridam yuj gareko ho} \newline
-\footnotesize Note: All English technical terms in Devanagari. &
-\emph{hamile} \textbf{machine learning algorithm} \emph{yuj gareko ho} \newline
-\footnotesize Note: Technical nouns corrected; verbal loanword assimilated. &
-\emph{hamile} \textbf{machine learning algorithm} \emph{yuj gareko ho} \newline
-\footnotesize Note: Verbal loanword remains assimilated in both models. \\
+{\scriptsize\texttt{Az5dcGRagyU\_0058}} &
+\dev{अगाडि बढाउने प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढ्छ} \newline
+\footnotesize Gloss: ``Please make efforts to move forward, not backward, is what I want to say.'' &
+\dev{अगाडि बढाउने प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु} \newline
+\footnotesize Note: Devanagari transcription. &
+\dev{अगाडि बढाउन प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढि} \newline
+\footnotesize Note: Accurate Devanagari transcription. &
+\dev{अगाडि बढाउन प्रयास गर्नुहोला पछाडि नबढाउनुहोला भन्न चाहन्छु जो व्यक्ति अगाडि बढि} \newline
+\footnotesize Note: Demonstrates zero spurious Latin insertion on native speech. \\
 \bottomrule
 \end{tabular*}
 \end{table}
@@ -455,9 +455,9 @@ To illustrate the qualitative impact of each adaptation stage, \cref{tab:qualita
 \paragraph{Analysis of error types.}
 The examples in \cref{tab:qualitative_examples} demonstrate three distinct operational regimes:
 \begin{enumerate}
-  \item \textbf{Acoustic loanword anchoring via SFT:} In \texttt{3U1Fw9\_xK01\_0042}, \texttt{k8ZbM2\_wL10\_0115}, and \texttt{p9QmK1\_vT04\_0312}, base model \sys{0} transliterates embedded English technical nouns and conversational markers into phonetic Devanagari (e.g., \emph{saptbher} for \textbf{software}, \emph{miting} for \textbf{meeting}). Synthetic SFT (\sys{1}) anchors these acoustic patterns to their standard Latin orthography, resolving the vast majority of cross-script errors across the corpus.
-  \item \textbf{Targeted boundary regularization via GRPO:} In exactly 173 utterances ($1.69\%$), sequence-level policy optimization rectifies subtle switch-point ambiguities. In \texttt{-IE5q6\_CMnU\_0189}, \sys{1} compounds the English brand name with the Devanagari postposition (\emph{tatako}), whereas \sys{4} correctly parses the lexical switch point (\emph{tata ko}). In \texttt{-IE5q6\_CMnU\_0244}, \sys{4} eliminates an isolated phonetic substitution (\emph{de} vs.\ \textbf{they}).
-  \item \textbf{Persistent morphological assimilation:} In \texttt{v2PnL8\_zR09\_0088}, both \sys{1} and \sys{4} successfully recover the Latin technical terms (\textbf{machine learning algorithm}), but transcribe the English verb \textbf{use} phonetically as \emph{yuj} preceding the light verb \emph{gareko}. In colloquial Nepali discourse, monosyllabic English verbs frequently undergo morphological assimilation into the matrix verbal complex, creating genuine phonetic ambiguity for automatic speech recognizers.
+  \item \textbf{Acoustic loanword anchoring via SFT:} In \texttt{-IE5q6\_CMnU\_0032} and \texttt{-IE5q6\_CMnU\_0143}, base model \sys{0} frequently transliterates embedded English technical nouns and colloquial idioms into Devanagari (e.g., rendering English \textbf{owner} as \dev{ओनर} and \textbf{lose out} as \dev{लुज आउट}). Synthetic SFT (\sys{1}) anchors these acoustic cues to standard Latin orthography, resolving the vast majority of cross-script errors across the corpus.
+  \item \textbf{Targeted boundary regularization via GRPO:} In exactly 173 utterances ($1.69\%$), sequence-level policy optimization rectifies subtle switch-point ambiguities. In \texttt{-IE5q6\_CMnU\_0189}, \sys{1} compounds the English brand name with the Devanagari postposition (\dev{टाटाको}), whereas \sys{4} correctly parses the lexical switch point (\textbf{tata} \dev{को}). In \texttt{-IE5q6\_CMnU\_0244}, \sys{4} eliminates an isolated phonetic substitution (\dev{दे} vs.\ \textbf{they}).
+  \item \textbf{Monolingual orthographic stability:} In pure Nepali segments such as \texttt{Az5dcGRagyU\_0058}, both \sys{1} and \sys{4} decode entirely in Devanagari script with zero spurious Latin characters, demonstrating that code-switched adaptation does not degrade native script stability.
 \end{enumerate}
 
 \section{Datasheet, Ethics, and Reproducibility}

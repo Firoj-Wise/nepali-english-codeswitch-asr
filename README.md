@@ -1,6 +1,6 @@
-# csrl: Synthetic-to-Real Adaptation for Nepali-English Code-Switched ASR
+# csrl: Synthetic-to-Real Code-Switched ASR
 
-> **A Spontaneous Podcast Benchmark and an Analysis of GRPO in Encoder-Decoder Models**
+> **A Spontaneous Nepali-English Podcast Benchmark**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -216,7 +216,7 @@ If you use this benchmark or codebase in your research, please cite:
 ```bibtex
 @misc{paudel2026csrl,
   author = {Paudel, Firoj},
-  title = {Synthetic-to-Real Adaptation for Nepali-English Code-Switched ASR: A Spontaneous Podcast Benchmark and an Analysis of GRPO in Encoder-Decoder Models},
+  title = {Synthetic-to-Real Code-Switched ASR: A Spontaneous Nepali-English Podcast Benchmark},
   year = {2026},
   publisher = {arXiv},
   howpublished = {\url{https://github.com/Firoj-Wise/nepali-english-codeswitch-asr}}
