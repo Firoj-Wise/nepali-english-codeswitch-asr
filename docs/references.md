@@ -7,6 +7,7 @@ Every link below was opened and checked on 2026-10-19. Agents may add entries on
 - Indic-Transcribe-Flex model card (architecture, modes, license, limitations): https://huggingface.co/bodhan-ai/indic-transcribe-flex
 - nvidia/canary-1b-v2 model card: https://huggingface.co/nvidia/canary-1b-v2
 - Canary-1B-v2 technical report, arXiv 2509.14128: https://arxiv.org/abs/2509.14128
+- OmniVoice: Towards Omnilingual Zero-Shot Text-to-Speech with Diffusion Language Models (k2-fsa), arXiv 2604.00688: https://arxiv.org/abs/2604.00688
 
 ## RL for ASR
 
@@ -21,6 +22,8 @@ Every link below was opened and checked on 2026-10-19. Agents may add entries on
 - DAPO: An Open-Source LLM Reinforcement Learning System at Scale, arXiv 2503.14476: https://arxiv.org/abs/2503.14476
 - Understanding R1-Zero-Like Training: A Critical Perspective (Dr. GRPO), arXiv 2503.20783: https://arxiv.org/abs/2503.20783
 - Group Sequence Policy Optimization, arXiv 2507.18071: https://arxiv.org/abs/2507.18071
+- DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models (GRPO original formulation), arXiv 2402.03300: https://arxiv.org/abs/2402.03300
+- LoRA: Low-Rank Adaptation of Large Language Models (ICLR 2022): https://openreview.net/forum?id=nZeVKeeFYf9
 
 ## Code-switched ASR
 
@@ -38,5 +41,4 @@ Every link below was opened and checked on 2026-10-19. Agents may add entries on
 
 ## To verify before citing
 
-- GRPO original formulation, DeepSeekMath, arXiv 2402.03300. UNVERIFIED in this session.
 - FLEURS dataset paper, arXiv 2205.12446. UNVERIFIED in this session.

@@ -28,9 +28,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from tqdm import tqdm
-
 import torch
+from tqdm import tqdm
 
 from csrl.application.ports import EncoderOutput
 from csrl.domain import constants

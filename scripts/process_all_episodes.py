@@ -14,6 +14,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
 import numpy as np
 from dotenv import load_dotenv
 from google import genai
@@ -43,13 +44,13 @@ logging.basicConfig(
 logger = logging.getLogger("batch_processor")
 
 
-def parse_offset(offset_str):
+def parse_offset(offset_str) -> float:
     if not offset_str:
-        return None
+        return -1.0
     try:
         return float(str(offset_str).rstrip("s"))
     except (ValueError, TypeError, AttributeError):
-        return None
+        return -1.0
 
 
 def find_split_points(wav_path: Path, total_dur: float, max_chunk_s: float = 1500.0) -> list[tuple[float, float]]:
@@ -115,7 +116,7 @@ def chunk_words(parts, min_dur=2.5, max_dur=15.0, gap_split=0.5):
         for w in trans.words:
             s = parse_offset(w.start_offset)
             e = parse_offset(w.end_offset)
-            if s is not None and e is not None and e > s:
+            if s >= 0.0 and e > s:
                 all_words.append({
                     "word": w.word,
                     "start": s,
@@ -146,11 +147,7 @@ def chunk_words(parts, min_dur=2.5, max_dur=15.0, gap_split=0.5):
         is_pause = (gap >= gap_split)
 
         split = False
-        if spk_change and dur >= min_dur:
-            split = True
-        elif is_pause and dur >= min_dur:
-            split = True
-        elif dur >= max_dur:
+        if spk_change and dur >= min_dur or is_pause and dur >= min_dur or dur >= max_dur:
             split = True
 
         if split:
@@ -385,9 +382,9 @@ def main():
                                     for w in trans.words:
                                         w_s = parse_offset(w.start_offset)
                                         w_e = parse_offset(w.end_offset)
-                                        if w_s is None:
+                                        if w_s < 0.0:
                                             continue
-                                        if w_e is None or w_e <= w_s:
+                                        if w_e <= w_s:
                                             w_e = w_s + 0.3
                                         part_words.append({
                                             "word": w.word,
@@ -441,9 +438,9 @@ def main():
                                                 for w in trans.words:
                                                     w_s = parse_offset(w.start_offset)
                                                     w_e = parse_offset(w.end_offset)
-                                                    if w_s is None:
+                                                    if w_s < 0.0:
                                                         continue
-                                                    if w_e is None or w_e <= w_s:
+                                                    if w_e <= w_s:
                                                         w_e = w_s + 0.3
                                                     w_start = w_s + seg_start
                                                     w_end = w_e + seg_start

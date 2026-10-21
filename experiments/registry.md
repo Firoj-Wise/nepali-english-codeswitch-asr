@@ -50,3 +50,17 @@ Or raise max_seconds to accept a truncated transcript. |
 | S1-20261020-real-test-run01 | 2026-10-20 | S1 | 4c22ddecf3c3 (dirty) | model.yaml, sft.yaml | TEST | 0.2460 | 0.0362 | split=test manifest=data/splits/real_test.jsonl |
 | S4-20261020-real-test-run01 | 2026-10-20 | S4 | 4c22ddecf3c3 (dirty) | model.yaml, grpo.yaml | RUNNING | - | - | - |
 | S4-20261020-real-test-run01 | 2026-10-20 | S4 | 4c22ddecf3c3 (dirty) | model.yaml, grpo.yaml | TEST | 0.2457 | 0.0360 | split=test manifest=data/splits/real_test.jsonl |
+| S0-20261021-real-dev-clean | 2026-10-21 | S0 | b16842b9a8e3 (dirty) | model.yaml | RUNNING | - | - | - |
+| S0-20261021-real-dev-clean | 2026-10-21 | S0 | b16842b9a8e3 (dirty) | model.yaml | INVALID | - | - | interrupted for full 13k dataset verification; superseded by clean-run02 |
+| S0-20261021-real-dev-clean-v2 | 2026-10-21 | S0 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | RUNNING | - | - | - |
+| S0-20261021-real-dev-clean-v2 | 2026-10-21 | S0 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | DONE | 0.2014 | 0.0370 | split=dev manifest=data/splits/real_dev.jsonl |
+| S1-20261021-real-dev-clean | 2026-10-21 | S1 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | RUNNING | - | - | - |
+| S1-20261021-real-dev-clean | 2026-10-21 | S1 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | DONE | 0.1892 | 0.0330 | split=dev manifest=data/splits/real_dev.jsonl |
+| S4-20261021-real-dev-clean | 2026-10-21 | S4 | b16842b9a8e3 (dirty) | model.yaml, grpo.yaml | RUNNING | - | - | - |
+| S4-20261021-real-dev-clean | 2026-10-21 | S4 | b16842b9a8e3 (dirty) | model.yaml, grpo.yaml | DONE | 0.1889 | 0.0329 | split=dev manifest=data/splits/real_dev.jsonl |
+| S0-20261021-real-test-clean | 2026-10-21 | S0 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | RUNNING | - | - | - |
+| S0-20261021-real-test-clean | 2026-10-21 | S0 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | TEST | 0.2340 | 0.0409 | split=test manifest=data/splits/real_test.jsonl |
+| S1-20261021-real-test-clean | 2026-10-21 | S1 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | RUNNING | - | - | - |
+| S1-20261021-real-test-clean | 2026-10-21 | S1 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | TEST | 0.2152 | 0.0385 | split=test manifest=data/splits/real_test.jsonl |
+| S4-20261021-real-test-clean | 2026-10-21 | S4 | b16842b9a8e3 (dirty) | model.yaml, grpo.yaml | RUNNING | - | - | - |
+| S4-20261021-real-test-clean | 2026-10-21 | S4 | b16842b9a8e3 (dirty) | model.yaml, grpo.yaml | TEST | 0.2149 | 0.0383 | split=test manifest=data/splits/real_test.jsonl |

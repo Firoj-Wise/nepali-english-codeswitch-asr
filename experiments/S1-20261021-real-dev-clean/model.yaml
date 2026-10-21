@@ -1,0 +1,13 @@
+# Local snapshot of bodhan-ai/indic-transcribe-flex (accept the license on Hugging Face,
+# then: hf download bodhan-ai/indic-transcribe-flex --local-dir models/indic-transcribe-flex).
+model_directory: models/indic-transcribe-flex
+language_code: ne
+transcription_mode: mixed
+device: cuda
+# Decoder prompt ids for language ne in mixed mode. Fill from experiments/model_inspection.txt
+# produced by scripts/inspect_model.py. Training refuses to start while this list is empty.
+prompt_token_ids: [7, 4, 18, 143, 143, 5, 8, 11, 13, 15]
+# Minimum exact-match rate between the official mixed-mode output and this repository's
+# greedy decoding in scripts/smoke_test_model.py.
+equivalence_min_exact_match: 0.60
+equivalence_sample_count: 20

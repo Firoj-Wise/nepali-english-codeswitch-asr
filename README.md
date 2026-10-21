@@ -2,7 +2,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Hugging Face Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-blue)](https://huggingface.co/datasets/Firoj112/nepali-english-codeswitch-podcasts)
+[![Hugging Face Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-blue)](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts)
 
 Code, experiment registry, and evaluation harness for reducing script confusion and switch-point errors in Nepali-English code-switched automatic speech recognition (ASR).
 
@@ -15,7 +15,7 @@ Training uses 100 percent synthetic code-switched speech synthesized via a dual-
 Nepali speakers frequently interleave English lexical items into Nepali conversational speech. Standard multilingual ASR systems often confuse scripts (writing English loanwords in Devanagari script or Nepali words in Latin script) and exhibit high error rates at linguistic switch points.
 
 This repository provides:
-1. **Benchmark dataset**: 12.80 hours of verified spontaneous Nepali-English code-switched podcast speech (10,214 test utterances, 2,830 dev utterances) released on Hugging Face at [`Firoj112/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/Firoj112/nepali-english-codeswitch-podcasts).
+1. **Benchmark dataset**: 12.80 hours of verified spontaneous Nepali-English code-switched podcast speech (10,214 test utterances, 2,830 dev utterances) released on Hugging Face at [`SamaFiroz/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts).
 2. **Two-stage adaptation methodology**: Supervised Fine-Tuning (SFT) on synthetic speech, followed by sequence-level Group Relative Policy Optimization (GRPO) with a joint Mixed Error Rate (MER) and Script Confusion Rate (SCR) reward.
 3. **Reproducibility**: Every number reported in the research paper is directly traceable to run artifacts in `experiments/` and verified in `experiments/registry.md`.
 
@@ -135,7 +135,7 @@ Evaluating the contribution of supervised fine-tuning, auxiliary token-level scr
 Ensure Python 3.10 or higher is installed:
 
 ```bash
-git clone https://github.com/Firojpaudel/nepali-english-codeswitch-asr.git
+git clone https://github.com/Firoj-Wise/nepali-english-codeswitch-asr.git
 cd nepali-english-codeswitch-asr
 
 # Using uv (recommended)
@@ -196,7 +196,7 @@ python scripts/train_grpo.py \
 
 The evaluation benchmark audio and transcriptions are available on the Hugging Face Hub:
 
-- **Repository**: [`Firoj112/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/Firoj112/nepali-english-codeswitch-podcasts)
+- **Repository**: [`SamaFiroz/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts)
 - **Splits**: `dev` (2,830 rows, 3.55 hours) and `test` (10,214 rows, 12.80 hours).
 - **Audio format**: 16 kHz mono WAV / FLAC, normalized duration.
 - **Audit documentation**: `data/audit/convention_violations.jsonl` catalogs flagged acoustic repetition segments.
@@ -213,7 +213,7 @@ If you use this benchmark or codebase in your research, please cite:
   title = {Reducing Script Confusion and Switch-Point Errors in Nepali-English Code-Switched ASR via Synthetic SFT and Reinforcement Learning},
   year = {2026},
   publisher = {GitHub},
-  howpublished = {\url{https://github.com/Firojpaudel/nepali-english-codeswitch-asr}}
+  howpublished = {\url{https://github.com/Firoj-Wise/nepali-english-codeswitch-asr}}
 }
 ```
 

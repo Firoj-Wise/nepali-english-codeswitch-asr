@@ -10,14 +10,11 @@ The API key is read from the environment variable named in the config. It is nev
 in a config file or in this repository.
 """
 
-import base64
-import io
 import os
 import time
 from dataclasses import dataclass
 
 import numpy as np
-import soundfile
 
 from csrl.domain.entities import VoiceSpec
 from csrl.domain.enums import DataSource, DeliveryStyle

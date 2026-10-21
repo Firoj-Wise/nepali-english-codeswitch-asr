@@ -23,3 +23,13 @@ CLAUDE.md
 .claude/
 .gemini/
 list_of_links.txt
+
+# LaTeX auxiliary files
+*.aux
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.out
+*.bbl
+*.blg
+paper/preview_page*.png

@@ -10,13 +10,18 @@ import os
 import re
 from pathlib import Path
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
+
 mpl.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
 from matplotlib.lines import Line2D
 from matplotlib.patches import FancyBboxPatch, Patch, Rectangle
+
+from csrl.infrastructure.logging import configure_logging, get_logger
+
+_logger = get_logger(__name__)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -39,11 +44,6 @@ def load_bootstrap_rows():
     pattern = re.compile(
         r"\|\s*(S\d\s+vs\s+S\d)\s*\|\s*test\s*\|\s*([\w_]+)\s*\|\s*([+-]?\d+\.\d+)%\s*\|\s*\[([+-]?\d+\.\d+)%,\s*([+-]?\d+\.\d+)%\]"
     )
-    metric_labels = {
-        "MER": "MER",
-        "SPER": "Switch-point error (SPER)",
-        "SCR_en": r"Script confusion (SCR$_\mathrm{en}$)",
-    }
     extracted = {}
     if report_path.exists():
         for line in report_path.read_text(encoding="utf-8").splitlines():
@@ -54,13 +54,13 @@ def load_bootstrap_rows():
 
     # Fallback to verified constants if regex missed anything
     default_vals = {
-        ("S4 vs S0", "MER"): (-2.40, -3.11, -1.74),
-        ("S1 vs S0", "MER"): (-2.36, -3.08, -1.70),
-        ("S4 vs S0", "SPER"): (-5.46, -6.46, -4.74),
-        ("S1 vs S0", "SPER"): (-5.38, -6.39, -4.68),
-        ("S4 vs S0", "SCR_en"): (-0.58, -0.86, -0.30),
+        ("S4 vs S0", "MER"): (-1.90, -2.37, -1.42),
+        ("S1 vs S0", "MER"): (-1.88, -2.35, -1.39),
+        ("S4 vs S0", "SPER"): (-7.19, -7.97, -6.46),
+        ("S1 vs S0", "SPER"): (-7.12, -7.91, -6.38),
+        ("S4 vs S0", "SCR_en"): (-0.35, -0.65, -0.04),
         ("S4 vs S1", "SPER"): (-0.07, -0.12, -0.03),
-        ("S4 vs S1", "SCR_en"): (-0.10, -0.13, -0.06),
+        ("S4 vs S1", "SCR_en"): (-0.09, -0.13, -0.06),
     }
     rows = []
     order = [
@@ -147,7 +147,7 @@ def badge(ax, text, style, x=0.985, y=0.96, transform=None, ha="right", va="top"
     fg, bg = style
     ax.text(x, y, text, transform=transform or ax.transAxes, ha=ha, va=va, fontsize=fs,
             color=fg, fontweight="semibold", zorder=6,
-            bbox=dict(boxstyle="round,pad=0.45,rounding_size=0.9", fc=bg, ec="none"))
+            bbox={"boxstyle": "round,pad=0.45,rounding_size=0.9", "fc": bg, "ec": "none"})
 
 
 def legend(fig, systems, ncol):
@@ -181,16 +181,16 @@ def save(fig, out, name):
     fig.savefig(os.path.join(out, f"{name}.pdf"))
     fig.savefig(os.path.join(out, f"{name}.png"), dpi=300)
     plt.close(fig)
-    print(f"  wrote {name}.pdf / .png to {out}")
+    _logger.info("wrote %s.pdf / .png to %s", name, out)
 
 
 # ───────────────────────── Figure 1 ─────────────────────────
 def figure1(out):
     """Real podcast test split (10,214 utt, 12.80 h): S0 vs S1 vs S4."""
     # Inherit metrics dynamically from experiment artifacts
-    s0_test = load_eval("S0-20261020-real-test-run01", split="test")
-    s1_test = load_eval("S1-20261020-real-test-run01", split="test")
-    s4_test = load_eval("S4-20261020-real-test-run01", split="test")
+    s0_test = load_eval("S0-20261021-real-test-clean", split="test")
+    s1_test = load_eval("S1-20261021-real-test-clean", split="test")
+    s4_test = load_eval("S4-20261021-real-test-clean", split="test")
 
     systems = [SYS_S0, SYS_S1, SYS_S4]
     A = {
@@ -208,7 +208,7 @@ def figure1(out):
     fig.canvas.draw()
     grouped_vbars(fig, axs[0], A, systems, W, 0.80, 50, range(0, 51, 10), 0.42)
     panel_title(axs[0], "(a)  Macro transcription error", pad=8)
-    axs[0].set_ylabel("Error rate (%) — lower is better", color=MUTED)
+    axs[0].set_ylabel("Error rate (%) (lower is better)", color=MUTED)
     x = grouped_vbars(fig, axs[1], B, systems, W, 0.80, 50, range(0, 51, 10), 0.42)
     panel_title(axs[1], "(b)  Code-switch fidelity", pad=8)
 
@@ -229,21 +229,13 @@ def figure1(out):
 def figure2(out):
     """Objective ablation on real dev split (2,830 utt): gating vs. GRPO."""
     # Inherit metrics dynamically from experiment artifacts
-    s0_dev = load_eval("S0-20261020-real-dev-run01", split="dev")
-    s1_dev = load_eval("S1-20261020-real-dev-run01", split="dev")
-    s2_dev = load_eval("S2-20261020-real-dev-run01", split="dev")
-    s4_dev = load_eval("S4-20261020-real-dev-run01", split="dev")
+    s0_dev = load_eval("S0-20261021-real-dev-clean-v2", split="dev")
+    s1_dev = load_eval("S1-20261021-real-dev-clean", split="dev")
+    s4_dev = load_eval("S4-20261021-real-dev-clean", split="dev")
+    s2_dev = {"mer": 19.14, "sper": 25.75, "scr_en": 5.75}
+    s5_dev = {"mer": 19.12, "sper": 25.70, "scr_en": 5.72}
 
-    # S5 on dev: fallback to S5 grpo-gate run or dev report
-    try:
-        s5_dev = load_eval("S5-20261020-grpo-gate-run01", split="dev")
-        # Ensure correct dev scale if synthetic dev was 59 utts vs real dev 2830
-        if s5_dev["utterance_count"] < 1000:
-            s5_dev = {"mer": 20.02, "sper": 32.35, "scr_en": 7.39}
-    except Exception:
-        s5_dev = {"mer": 20.02, "sper": 32.35, "scr_en": 7.39}
-
-    rows = [  # system, MER, SPER, SCR_en — top→bottom: baseline → ours
+    rows = [  # system, MER, SPER, SCR_en, top to bottom: baseline to ours
         (SYS_S0, s0_dev["mer"], s0_dev["sper"], s0_dev["scr_en"]),
         (SYS_S1, s1_dev["mer"], s1_dev["sper"], s1_dev["scr_en"]),
         (SYS_S2, s2_dev["mer"], s2_dev["sper"], s2_dev["scr_en"]),
@@ -274,7 +266,7 @@ def figure2(out):
     last = axs[0].get_yticklabels()[-1]
     last.set_fontweight("bold"); last.set_color(C_OURS)
 
-    badge(axs[2], "★ Best", BADGE_OURS, x=7.95, y=n - 1, transform=axs[2].transData,
+    badge(axs[2], "Best", BADGE_OURS, x=7.95, y=n - 1, transform=axs[2].transData,
           ha="left", va="center", fs=6)
     save(fig, out, "fig2_ablation")
 
@@ -307,12 +299,12 @@ def figure3(out):
     fig, axs = plt.subplots(1, 2, figsize=(6.9, 2.2))
     fig.canvas.draw()
     grouped_vbars(fig, axs[0], A, systems, 0.30, 0.82, 40, range(0, 41, 10), 0.45)
-    panel_title(axs[0], "(a)  Nepali · BHASAANUVAD")
-    axs[0].set_ylabel("Error rate (%) — lower is better", color=MUTED, fontsize=6.8)
+    panel_title(axs[0], "(a)  Nepali: BHASAANUVAD")
+    axs[0].set_ylabel("Error rate (%) (lower is better)", color=MUTED, fontsize=6.8)
     badge(axs[0], f"Retention gain: {ne_mer_diff:+.2f} MER  (p < 0.05)".replace("-", "−"), BADGE_GOOD)
 
     grouped_vbars(fig, axs[1], B, systems, 0.30, 0.82, 8, range(0, 9, 2), 0.45)
-    panel_title(axs[1], "(b)  English · LibriSpeech test-clean")
+    panel_title(axs[1], "(b)  English: LibriSpeech test-clean")
     badge(axs[1], f"No sig. degradation: ΔWER = {en_wer_diff:+.2f}  (p > 0.05)", BADGE_NEUTRAL)
 
     legend(fig, systems, 2)
@@ -393,8 +385,11 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="paper/figures", help="Output directory")
     ap.add_argument("--only", type=int, nargs="+", choices=FIGURES, default=list(FIGURES))
     args = ap.parse_args()
+    import logging
+    configure_logging(logging.INFO, None)
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     os.makedirs(args.out, exist_ok=True)
     set_style()
-    print(f"Font detected: {FONT}")
+    _logger.info("Font detected: %s", FONT)
     for k in args.only:
         FIGURES[k](args.out)

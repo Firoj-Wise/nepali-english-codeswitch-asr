@@ -66,6 +66,9 @@ def validate_references(utterances: Sequence[Utterance]) -> None:
             raise EmptyReferenceError(f"{utterance.utterance_id}: empty after normalization")
 
 
+from tqdm import tqdm
+
+
 def evaluate_policy(
     policy: Policy,
     utterances: Sequence[Utterance],
@@ -74,7 +77,13 @@ def evaluate_policy(
 ) -> tuple[dict[str, float | int], list[UtteranceScores]]:
     policy.backbone.train_mode(False)
     hypotheses: list[str] = []
-    for start in range(0, len(utterances), batch_size):
+    total_batches = (len(utterances) + batch_size - 1) // batch_size
+    for start in tqdm(
+        range(0, len(utterances), batch_size),
+        total=total_batches,
+        desc="Evaluating policy (GPU)",
+        unit="batch",
+    ):
         chunk = utterances[start : start + batch_size]
         audio, lengths = collate_audio(chunk, paths.audio_base_directory, policy.backbone.device)
         encoder = policy.backbone.encode(audio, lengths)
