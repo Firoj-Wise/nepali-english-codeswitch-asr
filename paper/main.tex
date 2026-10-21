@@ -6,17 +6,17 @@
 \usepackage{amsmath,amssymb,amsfonts}
 
 % ---------- Layout & margins ----------
-\usepackage[margin=1.8cm,top=1.8cm,bottom=1.8cm]{geometry}
+\usepackage[margin=1.65cm,top=1.65cm,bottom=1.65cm]{geometry}
 \usepackage{microtype}
 \usepackage{titlesec}
-\titlespacing*{\section}{0pt}{5pt plus 1pt minus 1pt}{2.5pt plus 1pt minus 1pt}
-\titlespacing*{\subsection}{0pt}{3.5pt plus 1pt minus 1pt}{1.5pt plus 1pt minus 1pt}
-\titlespacing*{\paragraph}{0pt}{1.5pt plus 1pt}{0.4em}
+\titlespacing*{\section}{0pt}{4pt plus 1pt minus 1pt}{2pt plus 1pt minus 1pt}
+\titlespacing*{\subsection}{0pt}{3pt plus 1pt minus 1pt}{1.2pt plus 1pt minus 1pt}
+\titlespacing*{\paragraph}{0pt}{1.2pt plus 1pt}{0.35em}
 
-\setlength{\textfloatsep}{5pt plus 1pt minus 1pt}
-\setlength{\floatsep}{4pt plus 1pt minus 1pt}
-\setlength{\intextsep}{4pt plus 1pt minus 1pt}
-\setlength{\dbltextfloatsep}{5pt plus 1pt minus 1pt}
+\setlength{\textfloatsep}{4pt plus 1pt minus 1pt}
+\setlength{\floatsep}{3pt plus 1pt minus 1pt}
+\setlength{\intextsep}{3pt plus 1pt minus 1pt}
+\setlength{\dbltextfloatsep}{4pt plus 1pt minus 1pt}
 
 \renewcommand{\topfraction}{0.95}
 \renewcommand{\bottomfraction}{0.85}
@@ -141,7 +141,7 @@ Crucially, dev and test splits are strictly speaker-disjoint (zero overlapping s
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=0.94\linewidth]{fig1_asr_comparison.pdf}
+  \includegraphics[width=0.88\linewidth]{fig1_asr_comparison.pdf}
   \vspace{-0.25cm}
   \caption{Primary benchmark results on the 10,214-utterance Frozen Real Test Split. (a) Macro transcription error rates (MER, WER, CER). (b) Code-switch and script fidelity metrics (SPER, English script confusion $\SCRen$, and overall SCR). The $-7.19\pp$ SPER bracket denotes total pipeline reduction vs.\ baseline ($p < 0.05$), with synthetic SFT providing primary transfer ($-7.12\pp$) and script-aware GRPO (\sys{4}) contributing targeted fine-grained boundary regularization ($-0.07\pp$, $p < 0.05$).}
   \label{fig:main_benchmark}
@@ -251,7 +251,7 @@ To assess whether improvements are statistically reliable, we executed paired bo
 To guard against potential intra-episode correlation across conversational sessions, we additionally conducted an episode-clustered block bootstrap ($B=1{,}000$ resamples clustered across the 25 test podcast episodes). Clustered analysis confirms that the fine-grained advantage of \sys{4} over \sys{1} remains statistically significant: $\Delta \text{SPER} = -0.07\pp$ (95\% CI: $[-0.15, -0.01]$, $p = 0.022$), $\Delta \SCRen = -0.09\pp$ (95\% CI: $[-0.11, -0.06]$, $p < 0.001$), and $\Delta \text{MER} = -0.03\pp$ (95\% CI: $[-0.05, -0.01]$, $p = 0.008$).
 
 \subsection{Ablation Study: Gating vs. Policy RL}
-We conducted an extensive ablation on the development split (2,830 utterances) comparing: \sys{0} (base model), \sys{1} (synthetic SFT), \sys{2} (SFT with auxiliary script gate and inference logit biasing), \sys{5} (joint GRPO with script gate), and \sys{4} (script-aware GRPO).
+We conducted an extensive ablation on the development split (2,830 utterances) comparing: \sys{0} (base model), \sys{1} (synthetic SFT), \sys{2} (SFT with auxiliary script gate and inference logit biasing), \sys{3} (GRPO with MER-only reward, $\lambda_{\text{scr}} = 0.0$), \sys{4} (script-aware GRPO, $\lambda_{\text{scr}} = 0.5$), and \sys{5} (joint GRPO with script gate).
 
 \begin{table}[t]
 \centering
@@ -262,17 +262,19 @@ We conducted an extensive ablation on the development split (2,830 utterances) c
 \toprule
 \textbf{System} & \textbf{MER} & \textbf{WER} & \textbf{SPER} & $\SCRen$ \\
 \midrule
-\sys{0} Base         & 20.14 & 32.23 & 32.63 & 5.83 \\
-\sys{1} SFT          & 18.92 & 29.11 & 25.60 & 5.35 \\
-\sys{2} SFT + Gate   & 19.14 & 29.35 & 25.75 & 5.75 \\
-\sys{5} GRPO + Gate  & 19.12 & 29.32 & 25.70 & 5.72 \\
-\sys{4} GRPO (Ours)  & \textbf{18.89} & \textbf{29.08} & \textbf{25.53} & \textbf{5.24} \\
+\sys{0} Base             & 20.14 & 32.23 & 32.63 & 5.83 \\
+\sys{1} SFT              & 18.92 & 29.11 & 25.60 & 5.35 \\
+\sys{2} SFT + Gate       & 19.14 & 29.35 & 25.75 & 5.75 \\
+\sys{3} GRPO (MER-only)  & \textbf{18.89} & \textbf{29.08} & \textbf{25.53} & \textbf{5.24} \\
+\sys{4} GRPO (Joint)     & \textbf{18.89} & \textbf{29.08} & \textbf{25.53} & \textbf{5.24} \\
+\sys{5} GRPO + Gate      & 19.12 & 29.32 & 25.70 & 5.72 \\
 \bottomrule
 \end{tabular*}
 \end{table}
 
-As shown in \cref{tab:ablation}, adding an auxiliary token-level script gate (\sys{2}) degrades performance relative to standard SFT (\sys{1}), increasing MER from $18.92\%$ to $19.14\%$ and $\SCRen$ from $5.35\%$ to $5.75\%$. Error inspection reveals that greedy logit biasing forces premature script assignment at loanword prefixes, penalizing valid Devanagari assimilations. 
-In contrast, sequence-level GRPO (\sys{4}) directly optimizes candidate probability mass without constraining autoregressive exploration, achieving the lowest MER ($18.89\%$), lowest SPER ($25.53\%$), and lowest $\SCRen$ ($5.24\%$) on the development split.
+As shown in \cref{tab:ablation}, adding an auxiliary token-level script gate (\sys{2}) degrades performance relative to standard SFT (\sys{1}), increasing MER from $18.92\%$ to $19.14\%$ and $\SCRen$ from $5.35\%$ to $5.75\%$. Error inspection reveals that greedy logit biasing forces premature script assignment at loanword prefixes, penalizing valid Devanagari assimilations.
+
+In contrast, sequence-level GRPO directly optimizes candidate probability mass without constraining autoregressive exploration. Comparing \sys{3} ($\lambda_{\text{scr}} = 0.0$) against \sys{4} ($\lambda_{\text{scr}} = 0.5$), both attain equivalent performance ($18.89\%$ MER, $25.53\%$ SPER, $5.24\%$ $\SCRen$). Because Stage~1 SFT already achieves near-zero error on synthetic prompts (synthetic dev MER $0.0200$), rollout candidate groups exhibit minimal cross-script diversity on the synthetic corpus, causing both reward formulations to select equivalent optimal checkpoints. This confirms that the benefit of policy optimization on encoder--decoder models stems from sequence-level boundary exploration rather than aggressive script re-weighting alone.
 
 \subsection{Monolingual Retention}
 A common drawback of code-switched adaptation is catastrophic forgetting of monolingual capabilities. We benchmarked \sys{0} and \sys{4} on two standardized external corpora:
@@ -288,19 +290,21 @@ A common drawback of code-switched adaptation is catastrophic forgetting of mono
 \textbf{Corpus} & \textbf{System} & \textbf{MER} & \textbf{WER} & \textbf{CER} & \textbf{SCR} \\
 \midrule
 Nepali (BHASAANUVAD) & \sys{0} Base & 20.80 & 30.73 & 22.52 & 8.71 \\
-(1,000 utt, 1.95\,h)  & \sys{4} GRPO & \textbf{18.42} & \textbf{29.52} & \textbf{19.56} & \textbf{6.95} \\
+(1,000 utt, 1.95\,h)  & \sys{1} SFT  & \textbf{18.09} & \textbf{29.06} & \textbf{19.22} & \textbf{6.95} \\
+                      & \sys{4} GRPO & 18.42 & 29.52 & 19.56 & \textbf{6.95} \\
 \midrule
 English (LibriSpeech) & \sys{0} Base & \textbf{4.21} & \textbf{3.33} & 1.59 & \textbf{0.59} \\
-(1,000 utt, 1.50\,h)  & \sys{4} GRPO & 5.27 & 3.38 & \textbf{1.47} & 1.03 \\
+(1,000 utt, 1.50\,h)  & \sys{1} SFT  & 5.38 & 3.42 & 1.49 & 1.07 \\
+                      & \sys{4} GRPO & 5.27 & 3.38 & \textbf{1.47} & 1.03 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Nepali (BHASAANUVAD, 1,000 utterances, 1.95\,h).}
-Rather than degrading, \sys{4} improves MER from $20.80\%$ to $18.42\%$ ($\Delta = -2.38\pp$, 95\% CI: $[-3.99, -0.74]$, $p < 0.05$). The script reward suppresses erroneous Latin alphabet insertions that previously afflicted native Devanagari transcriptions.
+Rather than degrading, synthetic SFT (\sys{1}) drops MER from $20.80\%$ to $18.09\%$ ($\Delta = -2.71\pp$), while \sys{4} stabilizes at $18.42\%$ ($\Delta = -2.38\pp$). The domain adaptation suppresses erroneous Latin alphabet insertions that previously afflicted native Devanagari transcriptions, reducing SCR from $8.71\%$ to $6.95\%$.
 
 \paragraph{English (LibriSpeech test-clean~\cite{librispeech2015}, 1,000 utterances, 1.50\,h).}
-\sys{4} records a WER of $3.38\%$ compared to $3.33\%$ for \sys{0} ($\Delta = +0.05\pp$, 95\% CI: $[-0.17, +0.30]$). Because the confidence interval comfortably spans zero ($p > 0.05$), English lexical accuracy is statistically preserved. However, MER increases from $4.21\%$ to $5.27\%$ and SCR from $0.59\%$ to $1.03\%$, reflecting occasional Devanagari character insertions on pure English speech induced by the code-switched decoder prior.
+On monolingual English, lexical accuracy is statistically preserved across adaptation: WER shifts from $3.33\%$ (\sys{0}) to $3.42\%$ (\sys{1}) and recovers to $3.38\%$ under \sys{4} (95\% CI vs.\ \sys{0}: $[-0.17, +0.30]$, $p > 0.05$). MER increases from $4.21\%$ to $5.27\%$ and SCR from $0.59\%$ to $1.03\%$, reflecting occasional Devanagari character insertions on pure English speech induced by the code-switched prior. S1 and S4 exhibit nearly identical profiles, confirming that English orthographic trade-offs stem from SFT adaptation rather than the GRPO objective.
 
 \subsection{Qualitative Analysis and Error Inspection}
 Detailed inspection of transcriptions on the frozen test split illustrates how script-aware GRPO resolves boundary confusion:

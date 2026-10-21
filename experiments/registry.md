@@ -64,3 +64,13 @@ Or raise max_seconds to accept a truncated transcript. |
 | S1-20261021-real-test-clean | 2026-10-21 | S1 | b16842b9a8e3 (dirty) | model.yaml, sft.yaml | TEST | 0.2152 | 0.0385 | split=test manifest=data/splits/real_test.jsonl |
 | S4-20261021-real-test-clean | 2026-10-21 | S4 | b16842b9a8e3 (dirty) | model.yaml, grpo.yaml | RUNNING | - | - | - |
 | S4-20261021-real-test-clean | 2026-10-21 | S4 | b16842b9a8e3 (dirty) | model.yaml, grpo.yaml | TEST | 0.2149 | 0.0383 | split=test manifest=data/splits/real_test.jsonl |
+| S1-20261021-bhasaanuvad-reg-run01 | 2026-10-21 | S1 | 7466b7fe6f0c (dirty) | model.yaml, sft.yaml | RUNNING | - | - | - |
+| S1-20261021-bhasaanuvad-reg-run01 | 2026-10-21 | S1 | 7466b7fe6f0c (dirty) | model.yaml, sft.yaml | DONE | 0.1809 | 0.0695 | split=dev manifest=data/splits/bhasaanuvad_eval.jsonl |
+| S1-20261021-librispeech-reg-run01 | 2026-10-21 | S1 | 7466b7fe6f0c (dirty) | model.yaml, sft.yaml | RUNNING | - | - | - |
+| S1-20261021-librispeech-reg-run01 | 2026-10-21 | S1 | 7466b7fe6f0c (dirty) | model.yaml, sft.yaml | DONE | 0.0538 | 0.0107 | split=dev manifest=data/splits/librispeech_eval.jsonl |
+| S3-20261021-grpo-s3-run01 | 2026-10-21 | S3 | 7466b7fe6f0c (dirty) | grpo_s3.yaml, model.yaml | RUNNING | - | - | - |
+| S3-20261021-grpo-s3-run01 | 2026-10-21 | S3 | 7466b7fe6f0c (dirty) | grpo_s3.yaml, model.yaml | INVALID | - | - | interrupted by user; superseded by run02 |
+| S3-20261021-grpo-s3-run02 | 2026-10-21 | S3 | 7466b7fe6f0c (dirty) | grpo_s3.yaml, model.yaml | RUNNING | - | - | - |
+| S3-20261021-grpo-s3-run02 | 2026-10-21 | S3 | 7466b7fe6f0c (dirty) | grpo_s3.yaml, model.yaml | DONE | 0.0200 | - | best dev MER; SCR in eval_dev.json |
+| S3-20261021-real-dev-clean | 2026-10-21 | S3 | 7466b7fe6f0c (dirty) | model.yaml, grpo_s3.yaml | RUNNING | - | - | - |
+| S3-20261021-real-dev-clean | 2026-10-21 | S3 | 7466b7fe6f0c (dirty) | model.yaml, grpo_s3.yaml | DONE | 0.1889 | 0.0329 | split=dev manifest=data/splits/real_dev.jsonl |
