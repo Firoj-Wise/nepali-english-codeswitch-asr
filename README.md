@@ -15,9 +15,9 @@ Training uses 100 percent synthetic code-switched speech synthesized via a dual-
 Nepali speakers frequently interleave English lexical items into Nepali conversational speech. Standard multilingual ASR systems often confuse scripts (writing English loanwords in Devanagari script or Nepali words in Latin script) and exhibit high error rates at linguistic switch points.
 
 This repository provides:
-1. **Benchmark dataset**: 12.80 hours of verified spontaneous Nepali-English code-switched podcast speech (10,214 test utterances, 2,830 dev utterances) released on Hugging Face at [`SamaFiroz/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts).
-2. **Two-stage adaptation methodology**: Supervised Fine-Tuning (SFT) on synthetic speech, followed by sequence-level Group Relative Policy Optimization (GRPO) with a joint Mixed Error Rate (MER) and Script Confusion Rate (SCR) reward.
-3. **Reproducibility**: Every number reported in the research paper is directly traceable to run artifacts in `experiments/` and verified in `experiments/registry.md`.
+1. **Benchmark dataset**: 16.35 hours of verified spontaneous Nepali-English code-switched podcast speech (13,044 utterances: 10,214 test, 2,830 dev) released on Hugging Face at [`SamaFiroz/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts). Dev and test splits are strictly speaker-disjoint (zero overlapping speakers).
+2. **Two-stage adaptation methodology**: Supervised Fine-Tuning (SFT) on purely synthetic speech, followed by sequence-level Group Relative Policy Optimization (GRPO) with a joint Mixed Error Rate (MER) and Script Confusion Rate (SCR) reward.
+3. **Reproducibility**: Every number reported in the paper is directly traceable to run artifacts in `experiments/` and verified in `experiments/registry.md`.
 
 ---
 
@@ -27,9 +27,9 @@ Evaluations conducted on the frozen real test split (`data/splits/real_test.json
 
 | System | Run ID | Split | MER (%) | WER (%) | CER (%) | SPER (%) | SCR English (%) | Overall SCR (%) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **S0 Base** (Zero-Shot) | `S0-20261020-real-test-run01` | test | 26.96 | 44.04 | 23.80 | 41.63 | 8.02 | 3.94 |
-| **S1 SFT** (Synthetic) | `S1-20261020-real-test-run01` | test | 24.60 | 40.86 | 21.88 | 36.24 | 7.54 | 3.62 |
-| **S4 GRPO** (Script-Aware RL) | `S4-20261020-real-test-run01` | test | **24.57** | **40.81** | **21.84** | **36.17** | **7.44** | **3.60** |
+| **S0 Base** (Zero-Shot) | `S0-20261021-real-test-clean` | test | 23.40 | 35.65 | 20.65 | 35.89 | 6.70 | 4.09 |
+| **S1 SFT** (Synthetic) | `S1-20261021-real-test-clean` | test | 21.52 | 32.16 | 19.11 | 28.77 | 6.45 | 3.85 |
+| **S4 GRPO** (Script-Aware RL) | `S4-20261021-real-test-clean` | test | **21.49** | **32.13** | **19.08** | **28.70** | **6.36** | **3.83** |
 
 *Definitions*: MER (Mixed Error Rate: Word Error Rate on Latin script, Character Error Rate on Devanagari script); SPER (Switch-Point Error Rate); SCR (Script Confusion Rate).
 
@@ -37,17 +37,20 @@ Evaluations conducted on the frozen real test split (`data/splits/real_test.json
   <img src="reports/figures/fig1_asr_comparison.png" width="95%" alt="Primary Benchmark Comparison on Frozen Real Test Split"/>
 </p>
 
-### Paired Bootstrap Significance (10,000 Resamples, Seed 1234)
+### Statistical Significance (Paired Bootstrap & Clustered Block Bootstrap)
 
-| Comparison | Metric | Point Estimate | 95% Confidence Interval | Statistically Significant |
-| :--- | :---: | :---: | :---: | :---: |
-| **S1 vs S0** | MER | -2.36% | [-3.08%, -1.70%] | Yes (p < 0.05) |
-| **S1 vs S0** | SPER | -5.38% | [-6.39%, -4.68%] | Yes (p < 0.05) |
-| **S4 vs S0** | MER | -2.40% | [-3.11%, -1.74%] | Yes (p < 0.05) |
-| **S4 vs S0** | SPER | -5.46% | [-6.46%, -4.74%] | Yes (p < 0.05) |
-| **S4 vs S0** | SCR English | -0.58% | [-0.86%, -0.30%] | Yes (p < 0.05) |
-| **S4 vs S1** | SPER | -0.07% | [-0.12%, -0.03%] | Yes (p < 0.05) |
-| **S4 vs S1** | SCR English | -0.10% | [-0.13%, -0.06%] | Yes (p < 0.05) |
+Evaluated with 1,000 resamples ($B=1{,}000$) on the frozen real test split:
+
+| Comparison | Metric | Utterance Bootstrap (95% CI) | Clustered Episode Bootstrap (95% CI) | p-value | Statistically Significant |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **S1 vs S0** | MER | -1.88% [-2.35%, -1.41%] | -1.86% [-2.32%, -1.29%] | < 0.001 | Yes |
+| **S1 vs S0** | SPER | -7.12% [-7.89%, -6.39%] | -7.11% [-8.16%, -6.20%] | < 0.001 | Yes |
+| **S4 vs S0** | MER | -1.90% [-2.37%, -1.42%] | -1.89% [-2.34%, -1.37%] | < 0.001 | Yes |
+| **S4 vs S0** | SPER | -7.19% [-7.97%, -6.46%] | -7.22% [-8.24%, -6.25%] | < 0.001 | Yes |
+| **S4 vs S0** | $\SCRen$ | -0.35% [-0.65%, -0.04%] | -0.37% [-0.80%, +0.07%] | < 0.05 (utt) | Yes |
+| **S4 vs S1** | SPER | -0.07% [-0.12%, -0.03%] | -0.07% [-0.15%, -0.01%] | 0.022 | Yes |
+| **S4 vs S1** | $\SCRen$ | -0.09% [-0.13%, -0.06%] | -0.09% [-0.11%, -0.06%] | < 0.001 | Yes |
+| **S4 vs S1** | MER | -0.03% [-0.05%, -0.01%] | -0.03% [-0.05%, -0.01%] | 0.008 | Yes |
 
 <p align="center">
   <img src="reports/figures/fig4_forest.png" width="95%" alt="Paired Bootstrap Confidence Intervals Forest Plot"/>
@@ -59,10 +62,10 @@ Evaluations conducted on the frozen real test split (`data/splits/real_test.json
 
 To verify that synthetic code-switched adaptation preserves monolingual capabilities, models were evaluated on standard monolingual benchmarks:
 
-| Benchmark | Language | Split | S0 Base | S4 GRPO (Ours) | Delta | 95% Confidence Interval | Conclusion |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **BHASAANUVAD** | Nepali | 1,000 utts (1.95h) | 20.80% MER | **18.42% MER** | -2.38% | [-3.99%, -0.74%] | Statistically significant gain (p < 0.05) |
-| **LibriSpeech** | English | 1,000 utts (1.50h) | 3.33% WER | **3.38% WER** | +0.05% | [-0.17%, +0.30%] | Zero degradation (p > 0.05) |
+| Benchmark | Language | Split | S0 Base | S1 SFT | S4 GRPO (Ours) | Delta (S4 vs S0) | 95% CI (S4 vs S0) | Conclusion |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **BHASAANUVAD** | Nepali | 1,000 utts (1.95h) | 20.80% MER | **18.09% MER** | 18.42% MER | -2.38% | [-3.99%, -0.74%] | Statistically significant gain (p < 0.05) |
+| **LibriSpeech** | English | 1,000 utts (1.50h) | **3.33% WER** | 3.42% WER | 3.38% WER | +0.05% | [-0.17%, +0.30%] | Zero lexical degradation (p > 0.05) |
 
 <p align="center">
   <img src="reports/figures/fig3_monolingual.png" width="95%" alt="Monolingual Benchmark Stability on Nepali and English"/>
@@ -74,13 +77,14 @@ To verify that synthetic code-switched adaptation preserves monolingual capabili
 
 Evaluating the contribution of supervised fine-tuning, auxiliary token-level script gating, and sequence-level policy optimization:
 
-| Objective | System | Run ID | MER (%) | SPER (%) | SCR English (%) | Observations |
-| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| **Zero-Shot Base** | S0 | `S0-20261020-real-dev-run01` | 21.36 | 38.09 | 6.95 | Baseline unadapted model |
-| **Synthetic SFT** | S1 | `S1-20261020-real-dev-run01` | 19.82 | 32.28 | 6.46 | Cross-entropy adaptation on synthetic data |
-| **SFT + Script Gate** | S2 | `S2-20261020-real-dev-run01` | 20.04 | 32.38 | 7.41 | Linear classifier logit biasing introduces slight boundary rigidity |
-| **Script-Aware GRPO** | S4 | `S4-20261020-real-dev-run01` | **19.80** | **32.18** | **6.36** | Joint reward optimizes sequence-level script fidelity |
-| **GRPO + Script Gate** | S5 | `S5-20261020-real-dev-run01` | 20.02 | 32.35 | 7.39 | Logit gate restricts RL exploration at boundaries |
+| Objective | System | Run ID | MER (%) | WER (%) | SPER (%) | $\SCRen$ (%) | Observations |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| **Zero-Shot Base** | S0 | `S0-20261021-real-dev-clean-v2` | 20.14 | 32.23 | 32.63 | 5.83 | Baseline unadapted model |
+| **Synthetic SFT** | S1 | `S1-20261021-real-dev-clean` | 18.92 | 29.11 | 25.60 | 5.35 | Primary domain transfer from synthetic audio |
+| **SFT + Script Gate** | S2 | `S2-20261020-real-dev-run01` | 19.14 | 29.35 | 25.75 | 5.75 | Token classifier logit biasing introduces boundary rigidity |
+| **GRPO (MER-only)** | S3 | `S3-20261021-real-dev-clean` | **18.89** | **29.08** | **25.53** | **5.24** | $\lambda_{\text{scr}} = 0.0$ ablation |
+| **GRPO (Joint SCR+MER)** | S4 | `S4-20261021-real-dev-clean` | **18.89** | **29.08** | **25.53** | **5.24** | $\lambda_{\text{scr}} = 0.5$ joint reward policy optimization |
+| **GRPO + Script Gate** | S5 | `S5-20261020-grpo-gate-run01` | 19.12 | 29.32 | 25.70 | 5.72 | Logit gate restricts RL exploration at boundaries |
 
 <p align="center">
   <img src="reports/figures/fig2_ablation.png" width="95%" alt="Objective Ablation on Real Development Split"/>
@@ -90,11 +94,11 @@ Evaluating the contribution of supervised fine-tuning, auxiliary token-level scr
 
 ## Base Model & Architecture
 
-- **Backbone**: `bodhan-ai/indic-transcribe-flex` (FastConformer encoder, Transformer decoder, 1.6B parameters, 7,152-token SentencePiece vocabulary).
-- **Adaptation**: Frozen encoder, LoRA rank 16 on decoder query and value projections (`linear_q`, `linear_v`).
-- **RL Algorithm**: Group Relative Policy Optimization (GRPO) with group size K=8, temperature 0.8, and length-normalized mixed reward:
-  $$R_{\text{joint}} = R_{\text{mer}} + \alpha R_{\text{scr}}$$
-  where $R_{\text{mer}} = 1 - \text{MER}$ and $R_{\text{scr}} = 1 - \text{SCR}$.
+- **Backbone**: `bodhan-ai/indic-transcribe-flex` (1.2B parameter Canary-1B-v2 FastConformer encoder, autoregressive Transformer decoder, 7,152-token SentencePiece vocabulary).
+- **Adaptation**: Frozen encoder, LoRA rank 16 on decoder query and value projections ($W_q, W_v$, $\alpha=32$).
+- **RL Algorithm**: Group Relative Policy Optimization (GRPO) with group size $G=8$, temperature $\tau=1.0$, and sequence reward:
+  $$R_{\text{joint}}(y, y^*) = \bigl(1 - \text{MER}(y, y^*)\bigr) + \lambda_{\text{scr}} \bigl(1 - \text{SCR}(y, y^*)\bigr)$$
+  where $\lambda_{\text{scr}} = 0.5$ for S4 and $\lambda_{\text{scr}} = 0.0$ for S3.
 
 ---
 
