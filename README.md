@@ -209,21 +209,6 @@ The evaluation benchmark transcripts, timestamps, episode metadata, and alignmen
 
 ---
 
-## Citation
-
-If you use this benchmark or codebase in your research, please cite:
-
-```bibtex
-@misc{paudel2026csrl,
-  author = {Paudel, Firoj},
-  title = {Synthetic-to-Real Code-Switched ASR: A Spontaneous Nepali-English Podcast Benchmark},
-  year = {2026},
-  publisher = {arXiv},
-  howpublished = {\url{https://github.com/Firoj-Wise/nepali-english-codeswitch-asr}}
-}
-```
-
----
 
 ## License
 
