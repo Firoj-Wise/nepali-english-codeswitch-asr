@@ -96,8 +96,8 @@ Evaluating the contribution of supervised fine-tuning, auxiliary token-level scr
 
 ## Base Model & Architecture
 
-- **Backbone**: `bodhan-ai/indic-transcribe-flex` (1.2B parameter Canary-1B-v2 FastConformer encoder, autoregressive Transformer decoder, 7,152-token SentencePiece vocabulary).
-- **Adaptation**: Frozen encoder, LoRA rank 16 on decoder query and value projections ($W_q, W_v$, $\alpha=32$).
+- **Backbone**: `bodhan-ai/indic-transcribe-flex` (1.22B parameter Canary-1B-v2 FastConformer encoder, autoregressive Transformer decoder, 7,152-token SentencePiece vocabulary).
+- **Adaptation**: Frozen acoustic encoder, fine-tuning of 24-layer Transformer decoder and output projection head (410.46M parameters, 33.60% of total 1.22B base parameters).
 - **RL Algorithm**: Group Relative Policy Optimization (GRPO) with group size $G=8$, temperature $\tau=1.0$, and sequence reward:
   $$R_{\text{joint}}(y, y^*) = \bigl(1 - \text{MER}(y, y^*)\bigr) + \lambda_{\text{scr}} \bigl(1 - \text{SCR}(y, y^*)\bigr)$$
   where $\lambda_{\text{scr}} = 0.5$ for S4 and $\lambda_{\text{scr}} = 0.0$ for S3.
@@ -108,7 +108,7 @@ Evaluating the contribution of supervised fine-tuning, auxiliary token-level scr
 
 ```
 ├── configs/                     # Experiment hyperparameters and model configurations
-│   ├── model.yaml               # IndicTranscribeFlex backbone and LoRA settings
+│   ├── model.yaml               # IndicTranscribeFlex backbone and model settings
 │   ├── sft.yaml                 # Supervised fine-tuning configuration
 │   ├── grpo.yaml                # Script-aware GRPO policy optimization settings
 │   └── data.yaml                # Split manifests and dataset parameters
