@@ -200,11 +200,11 @@ python scripts/train_grpo.py \
 
 ## Dataset Release
 
-The evaluation benchmark audio and transcriptions are available on the Hugging Face Hub:
+The evaluation benchmark transcripts, timestamps, episode metadata, and alignment scripts are available on the Hugging Face Hub:
 
 - **Repository**: [`SamaFiroz/nepali-english-codeswitch-podcasts`](https://huggingface.co/datasets/SamaFiroz/nepali-english-codeswitch-podcasts)
 - **Splits**: `dev` (2,830 rows, 3.55 hours) and `test` (10,214 rows, 11.90 hours; 15.45 hours total).
-- **Audio format**: 16 kHz mono WAV / FLAC, normalized duration.
+- **Audio acquisition**: 16 kHz mono linear PCM reconstructed from public YouTube broadcasts via pinned yt-dlp and ffmpeg pipeline.
 - **Audit documentation**: `data/audit/convention_violations.jsonl` catalogs flagged acoustic repetition segments.
 
 ---
